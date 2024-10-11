@@ -49,109 +49,109 @@ flags.DEFINE_multi_string(
     "cache_configs",
     [
         "cache_replacement/policy_learning/cache/configs/default.json",  # pylint: disable=line-too-long
-        "cache_replacement/policy_learning/cache/configs/eviction_policy/lru.json"  # pylint: disable=line-too-long
+        "cache_replacement/policy_learning/cache/configs/eviction_policy/lru.json",  # pylint: disable=line-too-long
     ],
-    "List of config paths merged front to back for the cache.")
+    "List of config paths merged front to back for the cache.",
+)
 flags.DEFINE_multi_string(
-    "config_bindings", [],
-    ("override config with key=value pairs "
-     "(e.g., eviction_policy.policy_type=greedy)"))
+    "config_bindings", [], ("override config with key=value pairs " "(e.g., eviction_policy.policy_type=greedy)")
+)
 flags.DEFINE_string(
-    "experiment_base_dir", "/tmp/experiments",
-    "Base directory to store all experiments in. Should not frequently change.")
+    "experiment_base_dir",
+    "/tmp/experiments",
+    "Base directory to store all experiments in. Should not frequently change.",
+)
 flags.DEFINE_string(
-    "experiment_name", "unnamed",
-    "All data related to this experiment is written to"
-    " experiment_base_dir/experiment_name.")
+    "experiment_name",
+    "unnamed",
+    "All data related to this experiment is written to" " experiment_base_dir/experiment_name.",
+)
 flags.DEFINE_string(
     "memtrace_file",
     "cache_replacement/policy_learning/cache/traces/omnetpp_train.csv",
-    "Memory trace file path to use.")
-flags.DEFINE_integer(
-    "tb_freq", 10000, "Number of cache reads between tensorboard logs.")
-flags.DEFINE_integer(
-    "warmup_period", int(2e3), "Number of cache reads before recording stats.")
+    "Memory trace file path to use.",
+)
+flags.DEFINE_integer("tb_freq", 10000, "Number of cache reads between tensorboard logs.")
+flags.DEFINE_integer("warmup_period", int(2e3), "Number of cache reads before recording stats.")
 flags.DEFINE_bool(
-    "force_overwrite", False,
-    ("If true, overwrites directory at "
-     " experiment_base_dir/experiment_name if it exists."))
+    "force_overwrite", False, ("If true, overwrites directory at " " experiment_base_dir/experiment_name if it exists.")
+)
 
 
 def log_scalar(writer, key, value, step):
-  writer.add_scalar(key, value, step)
+    writer.add_scalar(key, value, step)
 
 
 def main(_):
-  # Set up experiment directory
-  exp_dir = os.path.join(FLAGS.experiment_base_dir, FLAGS.experiment_name)
-  utils.create_experiment_directory(exp_dir, FLAGS.force_overwrite)
-  tensorboard_dir = os.path.join(exp_dir, "tensorboard")
-  tb_writer = SummaryWriter(tensorboard_dir)
-  miss_trace_path = os.path.join(exp_dir, "misses.csv")
-  evict_trace_path = os.path.join(exp_dir, "evictions.txt")
+    # Set up experiment directory
+    exp_dir = os.path.join(FLAGS.experiment_base_dir, FLAGS.experiment_name)
+    utils.create_experiment_directory(exp_dir, FLAGS.force_overwrite)
+    tensorboard_dir = os.path.join(exp_dir, "tensorboard")
+    tb_writer = SummaryWriter(tensorboard_dir)
+    miss_trace_path = os.path.join(exp_dir, "misses.csv")
+    evict_trace_path = os.path.join(exp_dir, "evictions.txt")
 
-  cache_config = cfg.Config.from_files_and_bindings(
-      FLAGS.cache_configs, FLAGS.config_bindings)
-  with open(os.path.join(exp_dir, "cache_config.json"), "w") as f:
-    cache_config.to_file(f)
+    cache_config = cfg.Config.from_files_and_bindings(FLAGS.cache_configs, FLAGS.config_bindings)
+    with open(os.path.join(exp_dir, "cache_config.json"), "w") as f:
+        cache_config.to_file(f)
 
-  flags_config = cfg.Config({
-      "memtrace_file": FLAGS.memtrace_file,
-      "tb_freq": FLAGS.tb_freq,
-      "warmup_period": FLAGS.warmup_period,
-  })
-  with open(os.path.join(exp_dir, "flags.json"), "w") as f:
-    flags_config.to_file(f)
+    flags_config = cfg.Config(
+        {
+            "memtrace_file": FLAGS.memtrace_file,
+            "tb_freq": FLAGS.tb_freq,
+            "warmup_period": FLAGS.warmup_period,
+        }
+    )
+    with open(os.path.join(exp_dir, "flags.json"), "w") as f:
+        flags_config.to_file(f)
 
-  logging.info("Config: %s", str(cache_config))
-  logging.info("Flags: %s", str(flags_config))
+    logging.info("Config: %s", str(cache_config))
+    logging.info("Flags: %s", str(flags_config))
 
-  cache_line_size = cache_config.get("cache_line_size")
-  with memtrace.MemoryTrace(
-      FLAGS.memtrace_file, cache_line_size=cache_line_size) as trace:
-    with memtrace.MemoryTraceWriter(miss_trace_path) as write_trace:
-      with evict.EvictionTrace(evict_trace_path, False) as evict_trace:
-        def write_to_eviction_trace(cache_access, eviction_decision):
-          evict_trace.write(
-              evict.EvictionEntry(cache_access, eviction_decision))
+    cache_line_size = cache_config.get("cache_line_size")
+    with memtrace.MemoryTrace(FLAGS.memtrace_file, cache_line_size=cache_line_size) as trace:
+        with memtrace.MemoryTraceWriter(miss_trace_path) as write_trace:
+            with evict.EvictionTrace(evict_trace_path, False) as evict_trace:
 
-        cache = cache_mod.Cache.from_config(cache_config, trace=trace)
+                def write_to_eviction_trace(cache_access, eviction_decision):
+                    evict_trace.write(evict.EvictionEntry(cache_access, eviction_decision))
 
-        # Warm up cache
-        for _ in tqdm.tqdm(range(FLAGS.warmup_period), desc="Warming up cache"):
-          pc, address = trace.next()
-          hit = cache.read(pc, address, [write_to_eviction_trace])
+                cache = cache_mod.Cache.from_config(cache_config, trace=trace)
 
-          if not hit:
-            write_trace.write(pc, address)
+                # Warm up cache
+                for _ in tqdm.tqdm(range(FLAGS.warmup_period), desc="Warming up cache"):
+                    pc, address = trace.next()
+                    hit = cache.read(pc, address, [write_to_eviction_trace])
 
-          if trace.done():
-            raise ValueError()
+                    if not hit:
+                        write_trace.write(pc, address)
 
-        # Discard warm-up cache statistics
-        cache.hit_rate_statistic.reset()
+                    if trace.done():
+                        raise ValueError()
 
-        num_reads = 0
-        with tqdm.tqdm(desc="Simulating cache on MemoryTrace") as pbar:
-          while not trace.done():
-            pc, address = trace.next()
-            hit = cache.read(pc, address, [write_to_eviction_trace])
+                # Discard warm-up cache statistics
+                cache.hit_rate_statistic.reset()
 
-            if not hit:
-              write_trace.write(pc, address)
+                num_reads = 0
+                with tqdm.tqdm(desc="Simulating cache on MemoryTrace") as pbar:
+                    while not trace.done():
+                        pc, address = trace.next()
+                        hit = cache.read(pc, address, [write_to_eviction_trace])
 
-            num_reads += 1
-            if num_reads % FLAGS.tb_freq == 0:
-              log_scalar(tb_writer, "cache_hit_rate",
-                         cache.hit_rate_statistic.success_rate(), num_reads)
+                        if not hit:
+                            write_trace.write(pc, address)
 
-            pbar.update(1)
+                        num_reads += 1
+                        if num_reads % FLAGS.tb_freq == 0:
+                            log_scalar(tb_writer, "cache_hit_rate", cache.hit_rate_statistic.success_rate(), num_reads)
 
-          log_scalar(tb_writer, "cache_hit_rate",
-                     cache.hit_rate_statistic.success_rate(), num_reads)
+                        pbar.update(1)
 
-  # Force flush, otherwise last writes will be lost.
-  tb_writer.flush()
+                    log_scalar(tb_writer, "cache_hit_rate", cache.hit_rate_statistic.success_rate(), num_reads)
+
+    # Force flush, otherwise last writes will be lost.
+    tb_writer.flush()
+
 
 if __name__ == "__main__":
-  app.run(main)
+    app.run(main)

@@ -21,53 +21,50 @@ from cache_replacement.policy_learning.cache_model import model
 
 
 class LearnedScorer(eviction_policy.CacheLineScorer):
-  """Cache line scorer that uses a learned model under the hood.
+    """Cache line scorer that uses a learned model under the hood.
 
-  NOTE: Must be called on consecutive memory accesses.
-  """
-
-  def __init__(self, scoring_model):
-    """Constructs a LearnedScorer from a given model.
-
-    Args:
-      scoring_model (EvictionPolicyModel): the model to compute scores with.
-
-    Returns:
-      LearnedScorer
+    NOTE: Must be called on consecutive memory accesses.
     """
-    self._model = scoring_model
-    self._hidden_state = None
 
-  @classmethod
-  def from_model_checkpoint(cls, model_config, model_checkpoint=None):
-    """Creates scorer from a model loaded from given checkpoint and config.
+    def __init__(self, scoring_model):
+        """Constructs a LearnedScorer from a given model.
 
-    Args:
-      model_config (Config): model config to use.
-      model_checkpoint (str | None): path to a checkpoint for the model. Model
-        uses default random initialization if no checkpoint is provided.
+        Args:
+          scoring_model (EvictionPolicyModel): the model to compute scores with.
 
-    Returns:
-      LearnedScorer
-    """
-    device = "cpu"
-    torch.set_default_dtype(torch.float32)
-    if torch.cuda.is_available():
-      device = "cuda"
-      torch.set_default_device(device)
+        Returns:
+          LearnedScorer
+        """
+        self._model = scoring_model
+        self._hidden_state = None
 
-    scoring_model = model.EvictionPolicyModel.from_config(model_config).to(
-        torch.device(device))
+    @classmethod
+    def from_model_checkpoint(cls, model_config, model_checkpoint=None):
+        """Creates scorer from a model loaded from given checkpoint and config.
 
-    if model_checkpoint is not None:
-      with open(model_checkpoint, "rb") as f:
-        scoring_model.load_state_dict(torch.load(f, map_location=device))
-    return cls(scoring_model)
+        Args:
+          model_config (Config): model config to use.
+          model_checkpoint (str | None): path to a checkpoint for the model. Model
+            uses default random initialization if no checkpoint is provided.
 
-  def __call__(self, cache_access, access_times):
-    del access_times
+        Returns:
+          LearnedScorer
+        """
+        device = "cpu"
+        torch.set_default_dtype(torch.float32)
+        if torch.cuda.is_available():
+            device = "cuda"
+            torch.set_default_device(device)
 
-    scores, _, self._hidden_state, _ = self._model(
-        [cache_access], self._hidden_state, inference=True)
-    return {line: -scores[0, i].item() for i, (line, _) in
-            enumerate(cache_access.cache_lines)}
+        scoring_model = model.EvictionPolicyModel.from_config(model_config).to(torch.device(device))
+
+        if model_checkpoint is not None:
+            with open(model_checkpoint, "rb") as f:
+                scoring_model.load_state_dict(torch.load(f, map_location=device))
+        return cls(scoring_model)
+
+    def __call__(self, cache_access, access_times):
+        del access_times
+
+        scores, _, self._hidden_state, _ = self._model([cache_access], self._hidden_state, inference=True)
+        return {line: -scores[0, i].item() for i, (line, _) in enumerate(cache_access.cache_lines)}

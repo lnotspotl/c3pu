@@ -21,12 +21,11 @@ from absl import logging
 
 
 def create_experiment_directory(path, overwrite=False):
-  logging.info("Experiment directory: %s", path)
-  if os.path.exists(path):
-    if overwrite:
-      logging.info("Overwriting %s", path)
-      shutil.rmtree(path)
-    else:
-      raise ValueError(
-          "Experiment directory: {} already exists.".format(path))
-  os.makedirs(path)
+    logging.info("Experiment directory: %s", path)
+    if os.path.exists(path):
+        if overwrite:
+            logging.info("Overwriting %s", path)
+            shutil.rmtree(path)
+        else:
+            raise ValueError("Experiment directory: {} already exists.".format(path))
+    os.makedirs(path)
