@@ -21,3 +21,4 @@ tensorboard-data-server==0.7.2
 tqdm==4.66.5
 triton==3.0.0
 Werkzeug==3.0.4
+ruff==0.6.9
