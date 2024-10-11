@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function print_help() {
-	echo "Usage: ./tbai [--format|--lint]"
+	echo "Usage: ./helper.bash [--format|--lint]"
 }
 
 if [[ "$1" == "--format" ]]; then
