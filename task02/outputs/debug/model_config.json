@@ -1,0 +1,25 @@
+{
+    "address_embedder": {
+        "embed_dim": 64,
+        "max_vocab_size": 10000,
+        "type": "dynamic-vocab"
+    },
+    "cache_line_embedder": "address_embedder",
+    "cache_pc_embedder": "none",
+    "loss": [
+        "log_likelihood"
+    ],
+    "lr": 0.001,
+    "lstm_hidden_size": 128,
+    "max_attention_history": 30,
+    "pc_embedder": {
+        "embed_dim": 64,
+        "max_vocab_size": 5000,
+        "type": "dynamic-vocab"
+    },
+    "positional_embedder": {
+        "embed_dim": 128,
+        "type": "positional"
+    },
+    "sequence_length": 80
+}
