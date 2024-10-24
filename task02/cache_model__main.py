@@ -33,6 +33,8 @@ Trains full model with all additions on trained and validated on the sample trac
 
 import io
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from absl import app
 from absl import flags
 from absl import logging
@@ -50,8 +52,8 @@ from cache_replacement.policy_learning.cache import memtrace
 from cache_replacement.policy_learning.cache_model import eviction_policy as model_eviction_policy
 from cache_replacement.policy_learning.cache_model import metric
 # Changed this line to use model.py from task02 (MLP model)
-# from cache_replacement.policy_learning.cache_model import model
-from task02 import model
+from cache_replacement.policy_learning.cache_model import model
+#from task02 import model
 from cache_replacement.policy_learning.cache_model import utils
 from cache_replacement.policy_learning.common import config as cfg
 from cache_replacement.policy_learning.common import utils as common_utils
@@ -231,6 +233,12 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
     hidden_state = None
     metrics = [metric.SuccessRateMetric(k), metric.KendallWeightedTau(), metric.OracleScoreGap()]
     desc = "Evaluating for {}".format(descriptor)
+
+    # Set to none
+    attention = None # Added this
+    pred_reuse_distances = None # Added this
+    hidden_state = None # Added this
+
     for batch in tqdm.tqdm(zip(*subsequences), desc=desc, total=subseq_length):
         probs, pred_reuse_distances, hidden_state, attention = policy_model(
             [entry.cache_access for entry in batch], hidden_state, inference=True
@@ -248,10 +256,10 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
             )
         for m in metrics:
             m.update(probs, eviction_mask, oracle_scores)
-
+        '''
         for i in range(FLAGS.batch_size):
             logs[i].append(pretty_print(batch[i], probs[i], list(next(attention)), pred_reuse_distances[i]))
-
+        '''
     filename = os.path.join(log_dir, "{}-{}.txt".format(descriptor, step))
     with open(filename, "w") as f:
         for log in logs:

@@ -125,12 +125,9 @@ class EvictionPolicyModel(nn.Module):
         self._pc_embedder = pc_embedder
         self._address_embedder = address_embedder
         self._cache_line_embedder = cache_line_embedder
-        self._cache_pc_embedder = pc_embedder # cache_pc_embedder
-        self._lstm_cell = nn.LSTMCell(pc_embedder.embed_dim + address_embedder.embed_dim, lstm_hidden_size)
+        self._cache_pc_embedder = cache_pc_embedder
+        self._MLP1 = nn.Linear(pc_embedder.embed_dim + address_embedder.embed_dim, lstm_hidden_size)
         self._positional_embedder = positional_embedder
-
-# Insert MLP here:
-        self._MLP1 = nn.Linear(pc_embedder.embed_dim * 17, 16)
 
         query_dim = cache_line_embedder.embed_dim
         if cache_pc_embedder is not None:
@@ -181,16 +178,16 @@ class EvictionPolicyModel(nn.Module):
             on a past CacheAccess arranged from earliest to most recent.
         """
         batch_size = len(cache_accesses)
+        '''
         if prev_hidden_state is None:
             hidden_state, hidden_state_history, access_history = self._initial_hidden_state(batch_size)
         else:
             hidden_state, hidden_state_history, access_history = prev_hidden_state
-
-# Embed current access
+        '''
+# Embed cache access
         pc_embedding = self._pc_embedder([cache_access.pc for cache_access in cache_accesses])
         address_embedding = self._address_embedder([cache_access.address for cache_access in cache_accesses])
         '''
-# Send through LSTM
         # Each (batch_size, hidden_size)
         next_c, next_h = self._lstm_cell(torch.cat((pc_embedding, address_embedding), -1), hidden_state)
 
@@ -204,7 +201,7 @@ class EvictionPolicyModel(nn.Module):
         access_history = access_history.copy()
         access_history.append(cache_accesses)
         '''
-# Embed cache lines
+# Embed the cache lines
         # Cache lines must be padded to at least length 1 for embedding layers.
         cache_lines, mask = utils.pad(
             [cache_access.cache_lines for cache_access in cache_accesses], min_len=1, pad_token=(0, 0)
@@ -222,7 +219,6 @@ class EvictionPolicyModel(nn.Module):
             cache_pc_embeddings = self._cache_pc_embedder(cache_pcs).view(batch_size, num_cache_lines, -1)
             cache_line_embeddings = torch.cat((cache_line_embeddings, cache_pc_embeddings), -1)
         '''
-# Attention mechanism
         # (batch_size, history_len, hidden_size)
         history_tensor = torch.stack(list(hidden_state_history), dim=1)
 
@@ -230,27 +226,22 @@ class EvictionPolicyModel(nn.Module):
         positional_embeds = self._positional_embedder(list(range(len(hidden_state_history)))).expand(batch_size, -1, -1)
 
         # attention_weights: (batch_size, num_cache_lines, history_len)
-        # context: (batch_size, num_cache_lines, hidden_size + pos_embed_size)  
+        # context: (batch_size, num_cache_lines, hidden_size + pos_embed_size)
         attention_weights, context = self._history_attention(
-            history_tensor, torch.cat((history_tensor, positional_embeds), -1), cache_line_embeddings)
+            history_tensor, torch.cat((history_tensor, positional_embeds), -1), cache_line_embeddings
+        )
         '''
-        # Flatten and concatenate cache_pc_embeddings
-        cache_pc_embeddings = cache_pc_embeddings.view(32,-1)
-# MLP Layer
-        mlp_outputs = self._MLP1(torch.cat((pc_embedding,cache_pc_embeddings), -1))
-        
-# Last softmax
+# Run through MLP
+        mlp1_outputs = self._MLP1(torch.cat((pc_embedding, address_embedding), -1))
         # (batch_size, num_cache_lines)
-        # scores = F.softmax(self._cache_line_scorer(context).squeeze(-1), -1)
-        scores = F.softmax(mlp_outputs.squeeze(-1), -1)
+        scores = F.softmax(self._cache_line_scorer(mlp1_outputs).squeeze(-1), -1)
         probs = utils.mask_renormalize(scores, mask)
 
-# Losses
-        pred_reuse_distances = self._reuse_distance_estimator(context).squeeze(-1)
+        pred_reuse_distances = self._reuse_distance_estimator(mlp1_outputs).squeeze(-1)
         # Return reuse distances as scores if probs aren't being trained.
         if len(self._loss_fns) == 1 and "reuse_dist" in self._loss_fns:
             probs = torch.max(pred_reuse_distances, torch.ones_like(pred_reuse_distances) * 1e-5) * mask.float()
-
+        '''
         # Transpose access_history to be (batch_size, history_len)
         unbatched_histories = zip(*access_history)
         # Nested zip of attention and access_history
@@ -259,6 +250,10 @@ class EvictionPolicyModel(nn.Module):
         )
 
         next_hidden_state = ((next_c, next_h), hidden_state_history, access_history)
+        '''
+        attention = None
+        next_hidden_state = None
+        access_attention = None
         return probs, pred_reuse_distances, next_hidden_state, access_attention
 
     def loss(self, eviction_traces, warmup_period):
