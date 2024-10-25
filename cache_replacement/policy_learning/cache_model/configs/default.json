@@ -18,8 +18,8 @@
   },
 
   "lstm_hidden_size": 128,
-  "max_attention_history": 30,
-  "sequence_length": 80,
+  "max_attention_history": 0,
+  "sequence_length": 1,
   "loss": [
     "log_likelihood"
   ]
