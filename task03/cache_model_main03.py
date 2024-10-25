@@ -59,22 +59,22 @@ from cache_replacement.policy_learning.common import utils as common_utils
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
     "train_memtrace",
-    "cache_replacement/policy_learning/cache/traces/omnetpp_train.csv",
+    "cache_replacement/policy_learning/cache/traces/astar_train.csv",
     "Path to the training memory trace.",
 )
 flags.DEFINE_string(
     "valid_memtrace",
-    "cache_replacement/policy_learning/cache/traces/omnetpp_valid.csv",
+    "cache_replacement/policy_learning/cache/traces/astar_valid.csv",
     "Path to the validation memory trace.",
 )
 flags.DEFINE_string(
     "experiment_base_dir",
-    "/tmp/experiments",
+    "./task03/outputs",
     "Base directory to store all experiments in. Should not frequently change.",
 )
 flags.DEFINE_string(
     "experiment_name",
-    "unnamed",
+    "debug",
     "All data related to this experiment is written to" " experiment_base_dir/experiment_name.",
 )
 flags.DEFINE_integer("batch_size", 32, "Size of model input batches.")
@@ -92,7 +92,7 @@ flags.DEFINE_integer(
     ("This times more training data is collected than updated on to avoid" " temporal correlations."),
 )
 flags.DEFINE_bool(
-    "force_overwrite", False, ("If true, overwrites directory at " " experiment_base_dir/experiment_name if it exists.")
+    "force_overwrite", True, ("If true, overwrites directory at " " experiment_base_dir/experiment_name if it exists.")
 )
 flags.DEFINE_multi_string(
     "model_configs",

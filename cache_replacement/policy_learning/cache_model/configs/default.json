@@ -11,7 +11,7 @@
     "max_vocab_size": 5000
   },
   "cache_line_embedder": "address_embedder",
-  "cache_pc_embedder": "none",
+  "cache_pc_embedder": "pc_embedder",
   "positional_embedder": {
     "type": "positional",
     "embed_dim": 128
