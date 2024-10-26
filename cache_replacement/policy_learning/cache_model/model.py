@@ -126,7 +126,7 @@ class EvictionPolicyModel(nn.Module):
         self._address_embedder = address_embedder
         self._cache_line_embedder = cache_line_embedder
         self._cache_pc_embedder = cache_pc_embedder
-        self._lstm_cell = nn.LSTMCell(pc_embedder.embed_dim + address_embedder.embed_dim, lstm_hidden_size)
+        self._rnn_cell = nn.RNNCell(pc_embedder.embed_dim + address_embedder.embed_dim, lstm_hidden_size)
         self._positional_embedder = positional_embedder
 
         query_dim = cache_line_embedder.embed_dim
@@ -187,10 +187,10 @@ class EvictionPolicyModel(nn.Module):
         address_embedding = self._address_embedder([cache_access.address for cache_access in cache_accesses])
 
         # Each (batch_size, hidden_size)
-        next_c, next_h = self._lstm_cell(torch.cat((pc_embedding, address_embedding), -1), hidden_state)
+        next_h = self._rnn_cell(torch.cat((pc_embedding, address_embedding), -1), hidden_state)
 
         if inference:
-            next_c = next_c.detach()
+            # next_c = next_c.detach()
             next_h = next_h.detach()
 
         # Don't modify history in place
@@ -244,7 +244,8 @@ class EvictionPolicyModel(nn.Module):
             zip(weights.transpose(0, 1), history) for weights, history in zip(attention_weights, unbatched_histories)
         )
 
-        next_hidden_state = ((next_c, next_h), hidden_state_history, access_history)
+        # next_hidden_state = ((next_c, next_h), hidden_state_history, access_history)
+        next_hidden_state = (next_h, hidden_state_history, access_history)
         return probs, pred_reuse_distances, next_hidden_state, access_attention
 
     def loss(self, eviction_traces, warmup_period):
@@ -326,11 +327,12 @@ class EvictionPolicyModel(nn.Module):
           access_history (collections.deque[list[CacheAccess]]): sequences of
             batches of cache accesses.
         """
-        initial_cell_state = torch.zeros(batch_size, self._lstm_cell.hidden_size)
-        initial_hidden_state = torch.zeros(batch_size, self._lstm_cell.hidden_size)
+        # initial_cell_state = torch.zeros(batch_size, self._rnn_cell.hidden_size)
+        initial_hidden_state = torch.zeros(batch_size, self._rnn_cell.hidden_size)
         initial_hidden_state_history = collections.deque([], maxlen=self._max_attention_history)
         initial_access_history = collections.deque([], maxlen=self._max_attention_history)
-        return ((initial_cell_state, initial_hidden_state), initial_hidden_state_history, initial_access_history)
+        # return ((initial_cell_state, initial_hidden_state), initial_hidden_state_history, initial_access_history)
+        return (initial_hidden_state, initial_hidden_state_history, initial_access_history)
 
 
 class LossFunction(abc.ABC):
