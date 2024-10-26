@@ -135,10 +135,10 @@ class EvictionPolicyModel(nn.Module):
         # self._history_attention = attention.MultiQueryAttention(attention.GeneralAttention(query_dim, lstm_hidden_size))
 
 # Single Linear Layer
-        self._single_linear = nn.Linear(address_embedder.embed_dim + pc_embedder.embed_dim, 1)
+        self._single_linear = nn.Linear(address_embedder.embed_dim + pc_embedder.embed_dim, 16)
 
         # f(h, e(l))
-        #self._cache_line_scorer = nn.Linear(lstm_hidden_size + self._positional_embedder.embed_dim, 1)
+        # self._cache_line_scorer = nn.Linear(lstm_hidden_size + self._positional_embedder.embed_dim, 1)
         # self._reuse_distance_estimator = nn.Linear(lstm_hidden_size + self._positional_embedder.embed_dim, 1)
 
         # Needs to be capped because of limited GPU memory
@@ -233,6 +233,8 @@ class EvictionPolicyModel(nn.Module):
             cache_line_embeddings = torch.cat((cache_line_embeddings, cache_pc_embeddings), -1)
 
 # Single Liner Layer
+        # 
+        
         single_layer_outputs = self._single_linear(torch.cat((address_embedding, pc_embedding), -1))
 
 # Attention
@@ -254,7 +256,7 @@ class EvictionPolicyModel(nn.Module):
         scores = F.softmax(single_layer_outputs.squeeze(-1), -1)
         probs = utils.mask_renormalize(scores, mask)
         '''
-        pred_reuse_distances = self._reuse_distance_estimator(single_layer_outputs).squeeze(-1)
+        pred_reuse_distances = self._reuse_distance_estimator(context).squeeze(-1)
         # Return reuse distances as scores if probs aren't being trained.
         if len(self._loss_fns) == 1 and "reuse_dist" in self._loss_fns:
             probs = torch.max(pred_reuse_distances, torch.ones_like(pred_reuse_distances) * 1e-5) * mask.float()

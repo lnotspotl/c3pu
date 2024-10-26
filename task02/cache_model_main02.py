@@ -199,8 +199,8 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
                     pred_rank,
                     "{:.2f}".format(prob),
                     "{:.2f}".format(eviction_decision.cache_line_scores[cand]),
-                    success
-                    # present,
+                    success,
+                    0,
                 ]
             )
         s.append(str(cache_lines_table))
