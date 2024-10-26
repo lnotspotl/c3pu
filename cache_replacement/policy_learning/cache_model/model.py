@@ -134,12 +134,9 @@ class EvictionPolicyModel(nn.Module):
             # query_dim += cache_pc_embedder.embed_dim
         # self._history_attention = attention.MultiQueryAttention(attention.GeneralAttention(query_dim, lstm_hidden_size))
 
-# Single Linear Layer
-        self._single_linear = nn.Linear(address_embedder.embed_dim + pc_embedder.embed_dim, 16)
-
         # f(h, e(l))
-        # self._cache_line_scorer = nn.Linear(lstm_hidden_size + self._positional_embedder.embed_dim, 1)
-        # self._reuse_distance_estimator = nn.Linear(lstm_hidden_size + self._positional_embedder.embed_dim, 1)
+        self._cache_line_scorer = nn.Linear(lstm_hidden_size + self._positional_embedder.embed_dim, 1)
+        self._reuse_distance_estimator = nn.Linear(lstm_hidden_size + self._positional_embedder.embed_dim, 1)
 
         # Needs to be capped because of limited GPU memory
         self._max_attention_history = max_attention_history
@@ -233,9 +230,11 @@ class EvictionPolicyModel(nn.Module):
             cache_line_embeddings = torch.cat((cache_line_embeddings, cache_pc_embeddings), -1)
 
 # Single Liner Layer
-        # 
-        
-        single_layer_outputs = self._single_linear(torch.cat((address_embedding, pc_embedding), -1))
+        # Create MLP Input tensor
+        # (batch_size, #cache_lines, address_embedding + pc_embedding)
+        cache_access_embeddings = cache_access_embeddings.expand(-1, num_cache_lines, -1)
+        # (batch_size, num_cache_lines, cache_access_embedding + cache_line_embedding)
+        single_layer_input=torch.cat((cache_access_embeddings, cache_line_embeddings), dim=-1)
 
 # Attention
         '''
@@ -253,7 +252,7 @@ class EvictionPolicyModel(nn.Module):
         '''
 # MLP2
         # (batch_size, num_cache_lines)
-        scores = F.softmax(single_layer_outputs.squeeze(-1), -1)
+        scores = F.softmax(self._cache_line_scorer(single_layer_input).squeeze(-1), -1)
         probs = utils.mask_renormalize(scores, mask)
         '''
         pred_reuse_distances = self._reuse_distance_estimator(context).squeeze(-1)
