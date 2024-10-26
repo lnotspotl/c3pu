@@ -30,7 +30,6 @@ Trains full model with all additions on trained and validated on the sample trac
 """
 # pylint: enable=line-too-long
 
-
 import io
 import os
 import sys
@@ -51,9 +50,7 @@ from cache_replacement.policy_learning.cache import eviction_policy
 from cache_replacement.policy_learning.cache import memtrace
 from cache_replacement.policy_learning.cache_model import eviction_policy as model_eviction_policy
 from cache_replacement.policy_learning.cache_model import metric
-# Changed this line to use model.py from task02 (MLP model)
 from cache_replacement.policy_learning.cache_model import model
-#from task02 import model
 from cache_replacement.policy_learning.cache_model import utils
 from cache_replacement.policy_learning.common import config as cfg
 from cache_replacement.policy_learning.common import utils as common_utils
@@ -150,7 +147,7 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
       metrics (list[CacheEvictionMetric]): metrics tracked during evaluation.
     """
 
-    def pretty_print(entry, probs, attention, pred_reuse_distances):
+    def pretty_print(entry, probs, attention):
         """Returns a human-readable string of the entry, probs, and attention.
 
         Args:
@@ -183,17 +180,17 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
             "prob",
             "oracle score",
             "pred reuse distance",
-            "rank correct?",
-            "in history?",
+            "rank correct?"
+            # "in history?",
         ]
         cache_lines_table = prettytable.PrettyTable(headers)
-        for i, (line, prob, pred_reuse) in enumerate(zip(cache_access.cache_lines, probs, pred_reuse_distances)):
+        for i, (line, prob) in enumerate(zip(cache_access.cache_lines, probs)):
             cand, pc = line
             pred_rank = true_rank_to_pred_rank[i]
             success = "SUCCESS" if pred_rank == i else "FAILURE"
 
-            present_in_history = any(cand == prev_access.address for _, prev_access in attention)
-            present = "PRESENT" if present_in_history else "ABSENT"
+            # present_in_history = any(cand == prev_access.address for _, prev_access in attention)
+            # present = "PRESENT" if present_in_history else "ABSENT"
             cache_lines_table.add_row(
                 [
                     i,
@@ -202,14 +199,13 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
                     pred_rank,
                     "{:.2f}".format(prob),
                     "{:.2f}".format(eviction_decision.cache_line_scores[cand]),
-                    "{:.2f}".format(pred_reuse.item()),
-                    success,
-                    present,
+                    success
+                    # present,
                 ]
             )
         s.append(str(cache_lines_table))
         s.append("\n")
-
+        '''
         s.append("Attention:\n")
         num_cache_lines = len(cache_access.cache_lines)
         headers = ["timestep", "pc", "address"] + ["line {}".format(i) for i in range(num_cache_lines)]
@@ -221,6 +217,7 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
             attention_table.add_row(row)
         s.append(str(attention_table))
         s.append("\n")
+        '''
         return "".join(s)
 
     # Chop into batch_size parallel sequences
@@ -233,14 +230,8 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
     hidden_state = None
     metrics = [metric.SuccessRateMetric(k), metric.KendallWeightedTau(), metric.OracleScoreGap()]
     desc = "Evaluating for {}".format(descriptor)
-
-    # Set to none
-    attention = None # Added this
-    pred_reuse_distances = None # Added this
-    hidden_state = None # Added this
-
     for batch in tqdm.tqdm(zip(*subsequences), desc=desc, total=subseq_length):
-        probs, pred_reuse_distances, hidden_state, attention = policy_model(
+        probs, hidden_state, attention = policy_model(
             [entry.cache_access for entry in batch], hidden_state, inference=True
         )
 
@@ -256,10 +247,11 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
             )
         for m in metrics:
             m.update(probs, eviction_mask, oracle_scores)
-        '''
+
         for i in range(FLAGS.batch_size):
-            logs[i].append(pretty_print(batch[i], probs[i], list(next(attention)), pred_reuse_distances[i]))
-        '''
+            # logs[i].append(pretty_print(batch[i], probs[i], list(next(attention)), pred_reuse_distances[i]))
+            logs[i].append(pretty_print(batch[i], probs[i], None))
+
     filename = os.path.join(log_dir, "{}-{}.txt".format(descriptor, step))
     with open(filename, "w") as f:
         for log in logs:
