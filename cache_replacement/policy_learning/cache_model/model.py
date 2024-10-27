@@ -254,12 +254,12 @@ class EvictionPolicyModel(nn.Module):
         # (batch_size, num_cache_lines)
         scores = F.softmax(self._cache_line_scorer(single_layer_input).squeeze(-1), -1)
         probs = utils.mask_renormalize(scores, mask)
-        '''
-        pred_reuse_distances = self._reuse_distance_estimator(context).squeeze(-1)
+        
+        pred_reuse_distances = self._reuse_distance_estimator(single_layer_input).squeeze(-1)
         # Return reuse distances as scores if probs aren't being trained.
         if len(self._loss_fns) == 1 and "reuse_dist" in self._loss_fns:
             probs = torch.max(pred_reuse_distances, torch.ones_like(pred_reuse_distances) * 1e-5) * mask.float()
-        '''
+        
         '''
         # Transpose access_history to be (batch_size, history_len)
         unbatched_histories = zip(*access_history)
@@ -271,7 +271,7 @@ class EvictionPolicyModel(nn.Module):
         '''
         access_attention = None
         next_hidden_state = None
-        return probs, next_hidden_state, access_attention
+        return probs, pred_reuse_distances, next_hidden_state, access_attention
 
     def loss(self, eviction_traces, warmup_period):
         """Computes the losses on a sequence of consecutive eviction entries.

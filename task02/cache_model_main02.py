@@ -147,7 +147,7 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
       metrics (list[CacheEvictionMetric]): metrics tracked during evaluation.
     """
 
-    def pretty_print(entry, probs, attention):
+    def pretty_print(entry, probs, attention, pred_reuse_distances):
         """Returns a human-readable string of the entry, probs, and attention.
 
         Args:
@@ -184,7 +184,7 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
             # "in history?",
         ]
         cache_lines_table = prettytable.PrettyTable(headers)
-        for i, (line, prob) in enumerate(zip(cache_access.cache_lines, probs)):
+        for i, (line, prob, pred_reuse) in enumerate(zip(cache_access.cache_lines, probs, pred_reuse_distances)):
             cand, pc = line
             pred_rank = true_rank_to_pred_rank[i]
             success = "SUCCESS" if pred_rank == i else "FAILURE"
@@ -199,8 +199,9 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
                     pred_rank,
                     "{:.2f}".format(prob),
                     "{:.2f}".format(eviction_decision.cache_line_scores[cand]),
-                    success,
-                    0,
+                    "{:.2f}".format(pred_reuse.item()),
+                    success
+                    # present,
                 ]
             )
         s.append(str(cache_lines_table))
@@ -231,7 +232,7 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
     metrics = [metric.SuccessRateMetric(k), metric.KendallWeightedTau(), metric.OracleScoreGap()]
     desc = "Evaluating for {}".format(descriptor)
     for batch in tqdm.tqdm(zip(*subsequences), desc=desc, total=subseq_length):
-        probs, hidden_state, attention = policy_model(
+        probs, pred_reuse_distances, hidden_state, attention = policy_model(
             [entry.cache_access for entry in batch], hidden_state, inference=True
         )
 
@@ -250,7 +251,7 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
 
         for i in range(FLAGS.batch_size):
             # logs[i].append(pretty_print(batch[i], probs[i], list(next(attention)), pred_reuse_distances[i]))
-            logs[i].append(pretty_print(batch[i], probs[i], None))
+            logs[i].append(pretty_print(batch[i], probs[i], None, pred_reuse_distances[i]))
 
     filename = os.path.join(log_dir, "{}-{}.txt".format(descriptor, step))
     with open(filename, "w") as f:
