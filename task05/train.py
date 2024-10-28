@@ -153,7 +153,7 @@ def main(args: argparse.Namespace):
         "max_attention_history" : 30,
         "sequence_length" : 80,
         "loss" : ["reuse_dist", "log_likelihood"],
-        "lr" : 0.001
+        "lr" : 0.001,
         "epochs" : args.epochs
     }
 
