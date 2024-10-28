@@ -21,5 +21,5 @@ conda activate /path/to/conda/env
 pip3 install -r requirements.txt
 
 # Install  cache_replacement package as an interactive python module
-pip3 install -e ./cache_replacement
+pip3 install -e .
 ```
