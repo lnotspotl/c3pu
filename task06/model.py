@@ -13,6 +13,34 @@ from cache_replacement.policy_learning.cache_model import utils
 # Include everything from the original model definition file
 from cache_replacement.policy_learning.cache_model.model import *
 
+
+# Define three custom RNN cells to unify the forward function declaration
+
+class CustomLSTMCell(nn.LSTMCell):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def forward(self, input, h_0, c_0):
+        return super().forward(input, h0, c0)
+
+class CustomRNNCell(nn.RNNCell):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def forward(self, input, h_0, c_0):
+        h1 = super().forward(input, h0)
+        c1 = h1.clone() # just clone so that the gradient can back-propagate
+        return h1, c1
+
+class CustomGRUCell(nn.GRUCell):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def forward(self, input, h_0, c_0):
+        h1 = super().forward(input, h0)
+        c1 = h1.clone() # just clone so that the gradient can back-propagate
+        return h1, c1
+
 class EvictionPolicyModel(nn.Module):
     """A model that approximates an eviction policy."""
 
@@ -72,6 +100,8 @@ class EvictionPolicyModel(nn.Module):
         max_attention_history,
         loss_fns=None,
         cache_pc_embedder=None,
+        rnn_type="lstm",
+        nonlinearity="tanh"
     ):
         """Constructs a model to predict evictions from a EvictionEntries history.
 
@@ -109,7 +139,18 @@ class EvictionPolicyModel(nn.Module):
         self._address_embedder = address_embedder
         self._cache_line_embedder = cache_line_embedder
         self._cache_pc_embedder = cache_pc_embedder
-        self._lstm_cell = nn.LSTMCell(pc_embedder.embed_dim + address_embedder.embed_dim, lstm_hidden_size)
+
+        # Choose rnn type
+        rnn_args = (pc_embedder.embed_dim + address_embedder.embed_dim, lstm_hidden_size)
+        if rnn_type == "lstm":
+            self._lstm_cell = CustomLSTMCell(*args)
+        elif rnn_type == "gru":
+            self._lstm_cell = CustomGRUCell(*args)
+        elif rnn_type == "rnn":
+            self._lstm_cell = CustomRNNCell(*args, nonlinearity=nonlinearity)
+        else:
+            raise ValueError(f"Unknown rnn type: {rnn_type}")
+
         self._positional_embedder = positional_embedder
 
         query_dim = cache_line_embedder.embed_dim

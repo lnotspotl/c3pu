@@ -20,7 +20,12 @@
     - Analyze which configurations performed best for each workload and why certain configurations might be more suited for specific types of cache behaviors.
 
 #### Part C: Model Space Exploration
-    - Plot the attention layers for each embedding and explain how the model’s attention changes with varying embedding.
+- Plot the attention layers for each embedding and explain how the model’s attention changes with varying embedding.
+
+#### Parameters:
+We will be varying the used RNN cell (LSTM, GRU, classical RNN).
+Moreover, in case of the RNN cell, we will change the internal nonlinearity(*tanh* and *relu*)
+Finally, to satisfy the requirement for changing the number of neurons, we will be varying the *lstm_hidden_size* parameter specifying the size of the densely connected layer within the RNN cell.
 
 ### Submit jobs
 
