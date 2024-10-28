@@ -19,6 +19,8 @@ import abc
 import torch
 from torch import nn
 
+import numpy as np
+
 
 def from_config(config):
     """Creates an embedder specified by the config.
@@ -109,7 +111,10 @@ class ByteEmbedder(Embedder):
                 byte_tensor[i][j] = value of jth byte of ints[i].
             """
             # Byte order doesn't matter as long as it's consistent.
-            return torch.tensor([int(x).to_bytes(num_bytes, byteorder="big") for x in ints]).long()
+            bytes = b"".join([int(x).to_bytes(num_bytes, byteorder="big") for x in ints])
+            bytes_np = np.frombuffer(bytes, dtype=np.uint8).reshape((-1, num_bytes))
+            bytes_torch = torch.tensor(bytes_np).long()
+            return bytes_torch
 
         # (batch_size, bytes_per_entry, embed_dim_per_byte)
         byte_tensors = int_to_byte_tensor(ints, self._bytes_per_entry)
