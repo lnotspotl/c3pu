@@ -17,6 +17,7 @@
 
 import abc
 import heapq
+
 import numpy as np
 import six
 

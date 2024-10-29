@@ -16,8 +16,10 @@
 """Classes to track metrics about cache line evictions."""
 
 import abc
+
 import numpy as np
 from scipy import stats
+
 from cache_replacement.policy_learning.cache_model import utils
 
 

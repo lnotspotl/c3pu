@@ -9,8 +9,8 @@ JOB_TEMPLATE = """#!/usr/bin/bash --login
 #BSUB -n {num_cpus}
 #BSUB -W {job_time_minutes}
 #BSUB -J {job_name}
-#BSUB -o stdout.%J
-#BSUB -e stderr.%J
+#BSUB -o {stdout_path}
+#BSUB -e {stderr_path}
 #BSUB -q gpu
 #BSUB -gpu "num=1:mode=shared:mps=no"
 #BSUB -R "span[hosts=1]"
@@ -57,11 +57,17 @@ def main(args: argparse.Namespace):
     # For each trace, submit a job
     for trace, capacity in itertools.product(traces, args.cache_capacities):
         script_path = os.path.join(job_folder, f"submit_{trace.name}_capacity={capacity}.sh")
+        output_folder = os.path.join(args.output_folder, f"outputs_{trace.name}_capacity={capacity}")
         with open(script_path, "w") as f:
             experiment_name = f"{trace.name}_capacity={capacity}"
+            experiment_folder = os.path.join(output_folder, experiment_name)
+            stdout_path = os.path.join(experiment_folder, "job_stdout.txt")
+            stderr_path = os.path.join(experiment_folder, "job_stderr.txt")
             f.write(
                 JOB_TEMPLATE.format(
                     num_cpus=args.num_cpus,
+                    stdout_path=stdout_path,
+                    stderr_path=stderr_path,
                     job_time_minutes=str(args.job_time_minutes),
                     job_name=f"train_{trace.name}_capacity={capacity}",
                     conda_env_path=CACHE_CONDA_ENV_PATH,

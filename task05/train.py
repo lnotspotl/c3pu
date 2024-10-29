@@ -4,6 +4,7 @@ import argparse
 import io
 import os
 import shutil
+from collections import defaultdict
 
 import numpy as np
 
@@ -138,7 +139,7 @@ def main(args: argparse.Namespace):
     # Path to output files
     experiment_folder = os.path.join(args.output_folder, args.experiment_name)
     checkpoint_folder = os.path.join(experiment_folder, "checkpoints")
-    logs_file = os.path.join(experiment_folder, "logs.txt")
+    stats_file = os.path.join(experiment_folder, "stats.npz")
     if args.override_outputs and os.path.exists(experiment_folder):
         shutil.rmtree(experiment_folder, ignore_errors=True)
     os.makedirs(experiment_folder)
@@ -183,9 +184,13 @@ def main(args: argparse.Namespace):
 
     # Create optimizer
     optimizer = optim.Adam(eviction_model.parameters(), lr=model_config.get("lr"))
+    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=model_config.get("total_training_steps"), eta_min=model_config.get("lr") / 10
+    )
+
+    stats = defaultdict(list)
 
     # Start training
-
     while True:
         # Book-keeping
         overall_loss = 0.0
@@ -197,14 +202,23 @@ def main(args: argparse.Namespace):
             for batch_number, batch in enumerate(
                 as_batches([train_data], model_config["batch_size"], model_config["sequence_length"])
             ):
+                # Perform a training step
                 optimizer.zero_grad()
                 losses = eviction_model.loss(batch, model_config["sequence_length"] // 2)
                 total_loss = sum(losses.values())
                 total_loss.backward()
                 optimizer.step()
 
+                # Update learning rate
+                lr_scheduler.step()
+
+                # Update stats
+                stats["step"].append(step)
+                stats["total_loss"].append(total_loss.item())
+
                 # Store checkpoint - yes, this stores the model at time 0
                 if step % args.checkpoint_freq == 0:
+                    print(f"Step: {int(step)} | Evaluating model on test trace")
                     hit_rate = f"{evaluate_model(test_trace, eviction_model, cache_config):.5f}"
                     model_name = f"checkpoint_step={step}_hr={hit_rate}_torch.pt"
                     model_path = os.path.join(checkpoint_folder, model_name)
@@ -212,6 +226,11 @@ def main(args: argparse.Namespace):
                     torch.save(eviction_model.state_dict(), checkpoint_buffer)
                     with open(model_path, "wb") as save_file:
                         save_file.write(checkpoint_buffer.getvalue())
+                    print(f"Step: {int(step)} | Model saved at {model_path}")
+                    print(f"Step: {int(step)} | Storing stats to {stats_file}")
+                    if os.path.exists(stats_file):
+                        os.remove(stats_file)
+                    np.savez(stats_file, **stats)
 
                 overall_loss += total_loss.item()
                 iterations += 1

@@ -18,16 +18,16 @@
 import abc
 import collections
 import itertools
-from absl import logging
+
 import numpy as np
 import torch
+from absl import logging
 from torch import distributions as td
 from torch import nn
 from torch.nn import functional as F
-from cache_replacement.policy_learning.cache_model import attention
-from cache_replacement.policy_learning.cache_model import embed
+
+from cache_replacement.policy_learning.cache_model import attention, embed, utils
 from cache_replacement.policy_learning.cache_model import loss as L
-from cache_replacement.policy_learning.cache_model import utils
 
 
 class EvictionPolicyModel(nn.Module):

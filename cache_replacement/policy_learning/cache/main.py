@@ -31,13 +31,11 @@ Example usage:
 # pylint: enable=line-too-long
 
 import os
-from absl import app
-from absl import flags
-from absl import logging
-
-from torch.utils.tensorboard import SummaryWriter
 
 import tqdm
+from absl import app, flags, logging
+from torch.utils.tensorboard import SummaryWriter
+
 from cache_replacement.policy_learning.cache import cache as cache_mod
 from cache_replacement.policy_learning.cache import evict_trace as evict
 from cache_replacement.policy_learning.cache import memtrace
