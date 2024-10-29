@@ -2,6 +2,7 @@
 
 import argparse
 import io
+import logging
 import os
 import shutil
 from collections import defaultdict
@@ -13,6 +14,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import tqdm
+from rich.console import Console
+from rich.logging import RichHandler
 
 # cache replacement related
 from cache_replacement.policy_learning.cache.cache import Cache
@@ -23,6 +26,33 @@ from cache_replacement.policy_learning.cache_model.eviction_policy import Learne
 from cache_replacement.policy_learning.cache_model.model import EvictionPolicyModel
 from cache_replacement.policy_learning.cache_model.schedules import LinearSchedule
 from cache_replacement.policy_learning.cache_model.utils import as_batches
+
+
+def get_logger(
+    name: str, log_to_stdout: bool = False, log_to_file: bool = False, level: str = "INFO", log_file: str = "./logs.txt"
+) -> logging.Logger:
+    assert log_to_stdout or log_to_file, "At least one of log_to_stdout or log_to_file must be True"
+    assert level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], f"Invalid log level: {level}"
+
+    handlers = list()
+    if log_to_file:
+        console = Console(file=open(log_file, "w"))  # TODO: this file should be closed
+        handlers.append(RichHandler(console=console))
+
+    if log_to_stdout:
+        handlers.append(RichHandler(rich_tracebacks=True, tracebacks_show_locals=True))
+
+    FORMAT = "%(name)s: %(message)s"
+    logging.basicConfig(
+        level=logging.CRITICAL,
+        format=FORMAT,
+        datefmt="[%X]",
+        handlers=handlers,
+    )
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    return logger
 
 
 def measure_cache_hit_rate(
@@ -139,10 +169,14 @@ def main(args: argparse.Namespace):
     # Path to output files
     checkpoint_folder = os.path.join(args.experiment_folder, "checkpoints")
     stats_file = os.path.join(args.experiment_folder, "stats.npz")
+    log_file = os.path.join(args.experiment_folder, "train.log")
     if args.override_outputs and os.path.exists(args.experiment_folder):
         shutil.rmtree(args.experiment_folder, ignore_errors=True)
     os.makedirs(args.experiment_folder, exist_ok=True)
     os.makedirs(checkpoint_folder, exist_ok=True)
+
+    # Set up logger
+    logger = get_logger(args.trace, log_to_stdout=True, log_to_file=args.log_to_file, log_file=log_file)
 
     # Cache config
     cache_config = {"cache_line_size": 64, "capacity": args.cache_capacity, "associativity": 16}
@@ -179,7 +213,7 @@ def main(args: argparse.Namespace):
 
     # Create eviction model
     eviction_model = EvictionPolicyModel.from_config(model_config).to(device)
-    print(f"Eviction model has {get_num_params(eviction_model) / 1e6:.3f} million parameters")
+    logger.info(f"Eviction model has {get_num_params(eviction_model) / 1e6:.3f} million parameters")
 
     # Create optimizer
     optimizer = optim.Adam(eviction_model.parameters(), lr=model_config.get("lr"))
@@ -217,7 +251,7 @@ def main(args: argparse.Namespace):
 
                 # Store checkpoint - yes, this stores the model at time 0
                 if step % args.checkpoint_freq == 0:
-                    print(f"Step: {int(step)} | Evaluating model on test trace")
+                    logger.info(f"Step: {int(step)} | Evaluating model on test trace")
                     hit_rate = f"{evaluate_model(test_trace, eviction_model, cache_config):.5f}"
                     model_name = f"checkpoint_step={step}_hr={hit_rate}_torch.pt"
                     model_path = os.path.join(checkpoint_folder, model_name)
@@ -225,8 +259,8 @@ def main(args: argparse.Namespace):
                     torch.save(eviction_model.state_dict(), checkpoint_buffer)
                     with open(model_path, "wb") as save_file:
                         save_file.write(checkpoint_buffer.getvalue())
-                    print(f"Step: {int(step)} | Model saved at {model_path}")
-                    print(f"Step: {int(step)} | Storing stats to {stats_file}")
+                    logger.info(f"Step: {int(step)} | Model saved at {model_path}")
+                    logger.info(f"Step: {int(step)} | Storing stats to {stats_file}")
                     if os.path.exists(stats_file):
                         os.remove(stats_file)
                     np.savez(stats_file, **stats)
@@ -236,10 +270,10 @@ def main(args: argparse.Namespace):
                 step += 1
 
                 description = f"Step: {int(step)} | Average loss: {overall_loss/iterations}"
-                print(description)
+                logger.info(description)
 
                 if step == model_config["total_training_steps"]:
-                    print("Training finished!")
+                    logger.info("Training finished!")
                     return
 
                 # DAgger break
@@ -247,12 +281,11 @@ def main(args: argparse.Namespace):
                     break
 
             description = f"Step: {int(step)} | Average loss: {overall_loss/iterations}"
-            print(description)
+            logger.info(description)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment_name", type=str)
     parser.add_argument("--trace", type=str)
     parser.add_argument("--experiment_folder", type=str)
     parser.add_argument("--cache_capacity", type=int, default=2**21)
@@ -261,6 +294,7 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint_freq", type=int, default=int(1e3))
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--total_training_steps", type=int, default=int(1e6))
+    parser.add_argument("--log_to_file", type=bool, default=False)
     args = parser.parse_args()
 
     main(args)

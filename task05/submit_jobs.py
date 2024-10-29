@@ -2,16 +2,16 @@
 
 import argparse
 import itertools
-import shutil
 import os
+import shutil
 from collections import namedtuple
 
 JOB_TEMPLATE = """#!/usr/bin/bash --login
 #BSUB -n {num_cpus}
 #BSUB -W {job_time_minutes}
 #BSUB -J {job_name}
-#BSUB -o {stdout_path}
-#BSUB -e {stderr_path}
+#BSUB -o stdout.%J
+#BSUB -e stderr.%J
 #BSUB -q gpu
 #BSUB -gpu "num=1:mode=shared:mps=no"
 #BSUB -R "span[hosts=1]"
@@ -29,7 +29,7 @@ python3 train.py \
     --trace={trace_name} \
     --override_outputs={override_outputs} \
     --cache_capacity={cache_capacity} \
-    >> {stdout_path} 2>> {stderr_path}
+    --log_to_file={log_to_file}
 """
 
 
@@ -62,18 +62,14 @@ def main(args: argparse.Namespace):
         with open(script_path, "w") as f:
             experiment_name = f"{trace.name}_capacity={capacity}"
             experiment_folder = os.path.join(args.output_folder, experiment_name)
-            experiment_folder_full = os.path.abspath(experiment_folder)
 
             if args.override_outputs and os.path.exists(experiment_folder):
                 shutil.rmtree(experiment_folder, ignore_errors=True)
             os.makedirs(experiment_folder, exist_ok=True)
-            stdout_path = os.path.join(experiment_folder_full, "job_stdout.txt")
-            stderr_path = os.path.join(experiment_folder_full, "job_stderr.txt")
             f.write(
                 JOB_TEMPLATE.format(
                     num_cpus=args.num_cpus,
-                    stdout_path=stdout_path,
-                    stderr_path=stderr_path,
+                    log_to_file=args.log_to_file,
                     job_time_minutes=str(args.job_time_minutes),
                     job_name=f"train_{trace.name}_capacity={capacity}",
                     conda_env_path=CACHE_CONDA_ENV_PATH,
@@ -100,6 +96,7 @@ if __name__ == "__main__":
     parser.add_argument("--override_outputs", type=bool, default=False)
     parser.add_argument("--job_time_minutes", type=int, default=100)
     parser.add_argument("--num_cpus", type=int, default=2)
+    parser.add_argument("--log_to_file", type=bool, default=True)
     parser.add_argument("--cache_capacities", type=int, nargs="+", default=[2**21])
     args = parser.parse_args()
 
