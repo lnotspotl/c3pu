@@ -1,51 +1,58 @@
 import collections
 import itertools
-import numpy as np
 
+import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-from cache_replacement.policy_learning.cache_model import attention
-from cache_replacement.policy_learning.cache_model import embed
-from cache_replacement.policy_learning.cache_model import utils
+from cache_replacement.policy_learning.cache_model import attention, embed, utils
 
 # Include everything from the original model definition file
 from cache_replacement.policy_learning.cache_model.model import *
 
 
 # Define three custom RNN cells to unify the forward function declaration
-
 class CustomLSTMCell(nn.LSTMCell):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def forward(self, input, h_0, c_0):
-        return super().forward(input, h0, c0)
+    def forward(self, input, hidden):
+        return super().forward(input, hidden)
+
 
 class CustomRNNCell(nn.RNNCell):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def forward(self, input, h_0, c_0):
-        h1 = super().forward(input, h0)
-        c1 = h1.clone() # just clone so that the gradient can back-propagate
+    def forward(self, input, hidden):
+        h_0, c_0 = hidden
+        h1 = super().forward(input, h_0)
+        c1 = h1.clone()  # just clone so that the gradient can back-propagate
         return h1, c1
+
 
 class CustomGRUCell(nn.GRUCell):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def forward(self, input, h_0, c_0):
-        h1 = super().forward(input, h0)
-        c1 = h1.clone() # just clone so that the gradient can back-propagate
+    def forward(self, input, hidden):
+        h_0, c_0 = hidden
+        h1 = super().forward(input, h_0)
+        c1 = h1.clone()  # just clone so that the gradient can back-propagate
         return h1, c1
+
+
+class DummyLogger:
+    def __init__(self):
+        for fn in ["debug", "info", "warning", "error", "critical"]:
+            setattr(self, fn, lambda msg: None)
 
 class EvictionPolicyModel(nn.Module):
     """A model that approximates an eviction policy."""
 
     @classmethod
-    def from_config(cls, config):
+    def from_config(cls, config, logger=DummyLogger()):
         """Creates a model from the config.
 
         Args:
@@ -84,10 +91,13 @@ class EvictionPolicyModel(nn.Module):
             address_embedder,
             cache_line_embedder,
             positional_embedder,
-            config.get("lstm_hidden_size"),
+            config.get("rnn_hidden_size"),
             config.get("max_attention_history"),
             loss_fns,
             cache_pc_embedder=cache_pc_embedder,
+            rnn_type=config.get("rnn_type"),
+            nonlinearity=config.get("rnn_cell_nonlinearity"),
+            logger=logger,
         )
 
     def __init__(
@@ -96,12 +106,13 @@ class EvictionPolicyModel(nn.Module):
         address_embedder,
         cache_line_embedder,
         positional_embedder,
-        lstm_hidden_size,
+        rnn_hidden_size,
         max_attention_history,
         loss_fns=None,
         cache_pc_embedder=None,
         rnn_type="lstm",
-        nonlinearity="tanh"
+        nonlinearity="tanh",
+        logger=DummyLogger(),
     ):
         """Constructs a model to predict evictions from a EvictionEntries history.
 
@@ -113,7 +124,7 @@ class EvictionPolicyModel(nn.Module):
             of the last access to that address.
 
         Computes:
-          c_0, h_0 = zeros(lstm_hidden_size)
+          c_0, h_0 = zeros(rnn_hidden_size)
           c_{t + 1}, h_{t + 1} = LSTM([e(pc_t)]; e(a_t)], c_t, h_t)
           h^i = attention([h_{t - K}, ..., h_t], query=e(l^i_t)) for i = 1, ..., N
           eviction_score s^i = softmax(f(h^i))
@@ -126,7 +137,7 @@ class EvictionPolicyModel(nn.Module):
           cache_line_embedder (embed.Embedder): embed the cache line.
           positional_embedder (embed.Embedder): embeds positions of the access
             history.
-          lstm_hidden_size (int): dimension of output of LSTM (h and c).
+          rnn_hidden_size (int): dimension of output of LSTM (h and c).
           max_attention_history (int): maximum number of past hidden states to
             attend over (K in the equation above).
           loss_fns (dict): maps a name (str) to a loss function (LossFunction).
@@ -139,15 +150,20 @@ class EvictionPolicyModel(nn.Module):
         self._address_embedder = address_embedder
         self._cache_line_embedder = cache_line_embedder
         self._cache_pc_embedder = cache_pc_embedder
+        self.logger = logger
+
+        self.logger.info(f"Using RNN type: {rnn_type}")
+        self.logger.info(f"RNN hidden size: {rnn_hidden_size}")
+        self.logger.info(f"Using embedder: {self._pc_embedder}")
 
         # Choose rnn type
-        rnn_args = (pc_embedder.embed_dim + address_embedder.embed_dim, lstm_hidden_size)
+        rnn_args = (pc_embedder.embed_dim + address_embedder.embed_dim, rnn_hidden_size)
         if rnn_type == "lstm":
-            self._lstm_cell = CustomLSTMCell(*args)
+            self._lstm_cell = CustomLSTMCell(*rnn_args)
         elif rnn_type == "gru":
-            self._lstm_cell = CustomGRUCell(*args)
+            self._lstm_cell = CustomGRUCell(*rnn_args)
         elif rnn_type == "rnn":
-            self._lstm_cell = CustomRNNCell(*args, nonlinearity=nonlinearity)
+            self._lstm_cell = CustomRNNCell(*rnn_args, nonlinearity=nonlinearity)
         else:
             raise ValueError(f"Unknown rnn type: {rnn_type}")
 
@@ -156,11 +172,11 @@ class EvictionPolicyModel(nn.Module):
         query_dim = cache_line_embedder.embed_dim
         if cache_pc_embedder is not None:
             query_dim += cache_pc_embedder.embed_dim
-        self._history_attention = attention.MultiQueryAttention(attention.GeneralAttention(query_dim, lstm_hidden_size))
+        self._history_attention = attention.MultiQueryAttention(attention.GeneralAttention(query_dim, rnn_hidden_size))
         # f(h, e(l))
-        self._cache_line_scorer = nn.Linear(lstm_hidden_size + self._positional_embedder.embed_dim, 1)
+        self._cache_line_scorer = nn.Linear(rnn_hidden_size + self._positional_embedder.embed_dim, 1)
 
-        self._reuse_distance_estimator = nn.Linear(lstm_hidden_size + self._positional_embedder.embed_dim, 1)
+        self._reuse_distance_estimator = nn.Linear(rnn_hidden_size + self._positional_embedder.embed_dim, 1)
 
         # Needs to be capped because of limited GPU memory
         self._max_attention_history = max_attention_history
@@ -168,6 +184,8 @@ class EvictionPolicyModel(nn.Module):
         if loss_fns is None:
             loss_fns = {"log_likelihood": LogProbLoss()}
         self._loss_fns = loss_fns
+
+        self.logger.info(str(self))
 
     def forward(self, cache_accesses, prev_hidden_state=None, inference=False):
         """Computes cache line to evict.

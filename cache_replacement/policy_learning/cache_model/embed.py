@@ -17,10 +17,9 @@
 
 import abc
 
+import numpy as np
 import torch
 from torch import nn
-
-import numpy as np
 
 
 def from_config(config):
@@ -114,7 +113,7 @@ class ByteEmbedder(Embedder):
             # Byte order doesn't matter as long as it's consistent.
             bytes = b"".join([int(x).to_bytes(num_bytes, byteorder="big") for x in ints])
             bytes_np = np.frombuffer(bytes, dtype=np.uint8).reshape((-1, num_bytes))
-            bytes_torch = torch.tensor(bytes_np).long()
+            bytes_torch = torch.tensor(bytes_np, dtype=torch.long)
             return bytes_torch
 
         # (batch_size, bytes_per_entry, embed_dim_per_byte)
