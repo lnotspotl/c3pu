@@ -139,8 +139,8 @@ def main(args: argparse.Namespace):
     experiment_folder = os.path.join(args.output_folder, args.experiment_name)
     checkpoint_folder = os.path.join(experiment_folder, "checkpoints")
     logs_file = os.path.join(experiment_folder, "logs.txt")
-    if args.override_outputs:
-        shutil.rmtree(experiment_folder)
+    if args.override_outputs and os.path.exists(experiment_folder):
+        shutil.rmtree(experiment_folder, ignore_errors=True)
     os.makedirs(experiment_folder)
     os.makedirs(checkpoint_folder)
 
