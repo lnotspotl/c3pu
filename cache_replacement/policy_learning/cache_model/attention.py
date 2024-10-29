@@ -16,10 +16,12 @@
 """Defines attention mechanisms."""
 
 import abc
+
 import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+
 from cache_replacement.policy_learning.cache_model import utils
 
 

@@ -25,5 +25,7 @@ The rest of the parameters (*cache_line_size = 64* and *associativity = 16*) sta
 ### Submit jobs
 
 ```bash
-python3 submit_jobs.py
+export CACHE_CONDA_ENV_PATH=<path-to-conda-env>
+export CACHE_TASK_PATH=<path-to-task> # path to task05 folder
+python3 submit_jobs.py --cache_capacities 1048576 2097152 4194304
 ```

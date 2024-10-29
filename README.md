@@ -1,4 +1,4 @@
-# cache <--- need a better name :D
+# ajak_cache
 
 ## Creating a conda environment
 ```bash
@@ -18,7 +18,7 @@ conda activate $(pwd)/<env-name>
 conda activate /path/to/conda/env
 
 # Install dependencies 
-pip3 install -r requirements.txt
+pip3 install -r requirements.txt --no-cache-dir
 
 # Install  cache_replacement package as an interactive python module
 pip3 install -e .

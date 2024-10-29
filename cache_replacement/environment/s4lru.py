@@ -16,6 +16,7 @@
 """S4LRU cache replacement algorithm."""
 
 import collections
+
 import policy
 
 

@@ -16,6 +16,7 @@
 """Example script for running replacement policies."""
 
 import argparse
+
 import belady
 import config as cfg
 import environment
