@@ -1,4 +1,4 @@
-# cache <--- need a better name :D
+# ajak_cache
 
 ## Creating a conda environment
 ```bash
