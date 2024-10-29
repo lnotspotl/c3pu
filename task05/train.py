@@ -233,7 +233,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_folder", type=str, default="outputs")
     parser.add_argument("--override_outputs", type=bool, default=False)
     parser.add_argument("--checkpoint_freq", type=int, default=int(1e3))
-    parser.add_argumetn("--epochs", type=int, default=int(1e7))
+    parser.add_argument("--epochs", type=int, default=int(1e7))
     args = parser.parse_args()
 
     main(args)
