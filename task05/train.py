@@ -1,28 +1,27 @@
 #!/usr/bin/env python3
 
+import argparse
+import io
 import os
 import shutil
-import io
-import tqdm
-import time
-import argparse
+
 import numpy as np
 
 # pytorch
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import tqdm
 
-# cache replacement imports
-from cache_replacement.policy_learning.cache_model.model import EvictionPolicyModel
-from cache_replacement.policy_learning.cache_model.eviction_policy import LearnedScorer
-from cache_replacement.policy_learning.cache_model.schedules import LinearSchedule
-from cache_replacement.policy_learning.cache.eviction_policy import BeladyScorer
+# cache replacement related
 from cache_replacement.policy_learning.cache.cache import Cache
 from cache_replacement.policy_learning.cache.evict_trace import EvictionEntry
-from cache_replacement.policy_learning.cache_model.utils import as_batches
+from cache_replacement.policy_learning.cache.eviction_policy import BeladyScorer, GreedyEvictionPolicy, MixturePolicy
 from cache_replacement.policy_learning.cache.memtrace import MemoryTrace
-from cache_replacement.policy_learning.cache.eviction_policy import GreedyEvictionPolicy, MixturePolicy
+from cache_replacement.policy_learning.cache_model.eviction_policy import LearnedScorer
+from cache_replacement.policy_learning.cache_model.model import EvictionPolicyModel
+from cache_replacement.policy_learning.cache_model.schedules import LinearSchedule
+from cache_replacement.policy_learning.cache_model.utils import as_batches
 
 
 def measure_cache_hit_rate(
@@ -50,9 +49,7 @@ def measure_cache_hit_rate(
             policy_probs = [1 - model_prob, model_prob]
             scoring_policy_index = 0 if use_oracle_scores else None
 
-            return MixturePolicy(
-                policies, policy_probs, scoring_policy_index=scoring_policy_index
-            )
+            return MixturePolicy(policies, policy_probs, scoring_policy_index=scoring_policy_index)
 
         policy = create_eviction_policy(model_prob_schedule.value(get_step()))
         cache = Cache.from_config(cache_config, eviction_policy=policy, trace=trace)
@@ -89,17 +86,19 @@ def measure_cache_hit_rate(
                 hit_rates = hit_rates[skip_len : skip_len * (k - 1) + 1 : skip_len] + [hit_rates[-1]]
                 yield data, hit_rates
 
+
 def get_num_params(model):
     return sum(param.numel() for param in model.parameters())
+
 
 def get_model_device(model):
     return next(model.parameters()).device
 
+
 def evaluate_model(test_trace: str, model: nn.Module, cache_config: dict, warmup_period=int(2e3)):
-    
     # Load test trace into memory
     memory_trace = MemoryTrace(test_trace, cache_line_size=cache_config["cache_line_size"])
-    
+
     # Initialize greedy learned policy
     learned_scorer = LearnedScorer(model)
     greedy_policy = GreedyEvictionPolicy(learned_scorer)
@@ -109,7 +108,6 @@ def evaluate_model(test_trace: str, model: nn.Module, cache_config: dict, warmup
 
     # Evaluate hit rate
     with memory_trace:
-
         # Warmup cache
         for i in range(warmup_period):
             assert not memory_trace.done(), "memory trace depleted in warmup stage"
@@ -127,9 +125,9 @@ def evaluate_model(test_trace: str, model: nn.Module, cache_config: dict, warmup
 
     return hit_rate
 
-def main(args: argparse.Namespace):
 
-    # Paths to train, validation and test datasets    
+def main(args: argparse.Namespace):
+    # Paths to train, validation and test datasets
     trace_folder = os.path.join(args.input_folder, args.trace)
     assert os.path.exists(trace_folder), f"Trace folder `{trace_folder}` does not exist."
 
@@ -146,35 +144,38 @@ def main(args: argparse.Namespace):
     os.makedirs(experiment_folder)
     os.makedirs(checkpoint_folder)
 
-
     # Cache config
     cache_config = {"cache_line_size": 64, "capacity": args.cache_capacity, "associativity": 16}
 
     # Model config
     model_config = {
-        "address_embedder" : {"type": "dynamic-vocab", "embed_dim": 64, "max_vocab_size": 10000},
-        "pc_embedder" : {"type": "dynamic-vocab", "embed_dim": 64, "max_vocab_size": 10000},
-        "cache_line_embedder" : "address_embedder",
-        "cache_pc_embedder" : "none",
-        "positional_embedder" : {"type": "positional", "embed_dim": 128},
-        "lstm_hidden_size" : 128,
-        "max_attention_history" : 30,
-        "sequence_length" : 80,
-        "loss" : ["reuse_dist", "log_likelihood"],
-        "lr" : 0.001,
-        "total_training_steps" : args.total_training_steps,
-        "batch_size" : args.batch_size
+        "address_embedder": {"type": "dynamic-vocab", "embed_dim": 64, "max_vocab_size": 10000},
+        "pc_embedder": {"type": "dynamic-vocab", "embed_dim": 64, "max_vocab_size": 10000},
+        "cache_line_embedder": "address_embedder",
+        "cache_pc_embedder": "none",
+        "positional_embedder": {"type": "positional", "embed_dim": 128},
+        "lstm_hidden_size": 128,
+        "max_attention_history": 30,
+        "sequence_length": 80,
+        "loss": ["reuse_dist", "log_likelihood"],
+        "lr": 0.001,
+        "total_training_steps": args.total_training_steps,
+        "batch_size": args.batch_size,
     }
 
     # Create DAgger scheduler
     schedule_config = {"type": "linear", "initial": 0.0, "final": 1.0, "num_steps": 200000, "update_freq": 10000}
-    schedule = LinearSchedule(schedule_config["num_steps"], initial_p=schedule_config["initial"], final_p=schedule_config["final"])
+    schedule = LinearSchedule(
+        schedule_config["num_steps"], initial_p=schedule_config["initial"], final_p=schedule_config["final"]
+    )
     step = 0.0
-    def get_step(): return step
+
+    def get_step():
+        return step
 
     # Training device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    torch.set_default_device(device) # Allocate memory on this device by default
+    torch.set_default_device(device)  # Allocate memory on this device by default
 
     # Create eviction model
     eviction_model = EvictionPolicyModel.from_config(model_config).to(device)
@@ -186,23 +187,18 @@ def main(args: argparse.Namespace):
     # Start training
 
     while True:
-
         # Book-keeping
         overall_loss = 0.0
         iterations = 0
 
-        data_generator = measure_cache_hit_rate(
-            train_trace, 
-            cache_config,
-            eviction_model,
-            schedule,
-            get_step
-        )
+        data_generator = measure_cache_hit_rate(train_trace, cache_config, eviction_model, schedule, get_step)
 
         for train_data, hit_rates in data_generator:
-            for batch_number, batch in enumerate(as_batches([train_data], model_config["batch_size"], model_config["sequence_length"])):
+            for batch_number, batch in enumerate(
+                as_batches([train_data], model_config["batch_size"], model_config["sequence_length"])
+            ):
                 optimizer.zero_grad()
-                losses = eviction_model.loss(batch, model_config["sequence_length"]//2)
+                losses = eviction_model.loss(batch, model_config["sequence_length"] // 2)
                 total_loss = sum(losses.values())
                 total_loss.backward()
                 optimizer.step()
