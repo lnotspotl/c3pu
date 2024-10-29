@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 import os
+import shutil
+import io
 import tqdm
 import time
 import argparse
+import numpy as np
 
 # pytorch
 import torch
@@ -13,11 +16,13 @@ import torch.optim as optim
 # cache replacement imports
 from cache_replacement.policy_learning.cache_model.model import EvictionPolicyModel
 from cache_replacement.policy_learning.cache_model.eviction_policy import LearnedScorer
-from cache_replacement.policy_learning.cache_model.schedules import LinearSchedule, ConstantSchedule
+from cache_replacement.policy_learning.cache_model.schedules import LinearSchedule
 from cache_replacement.policy_learning.cache.eviction_policy import BeladyScorer
 from cache_replacement.policy_learning.cache.cache import Cache
 from cache_replacement.policy_learning.cache.evict_trace import EvictionEntry
 from cache_replacement.policy_learning.cache_model.utils import as_batches
+from cache_replacement.policy_learning.cache.memtrace import MemoryTrace
+from cache_replacement.policy_learning.cache.eviction_policy import GreedyEvictionPolicy, MixturePolicy
 
 
 def measure_cache_hit_rate(
@@ -41,11 +46,11 @@ def measure_cache_hit_rate(
             oracle_scorer = BeladyScorer(trace)
             learned_scorer = LearnedScorer(eviction_model)
 
-            policies = [eviction_policy.GreedyEvictionPolicy(oracle_scorer), eviction_policy.GreedyEvictionPolicy(learned_scorer)]
+            policies = [GreedyEvictionPolicy(oracle_scorer), GreedyEvictionPolicy(learned_scorer)]
             policy_probs = [1 - model_prob, model_prob]
             scoring_policy_index = 0 if use_oracle_scores else None
 
-            return eviction_policy.MixturePolicy(
+            return MixturePolicy(
                 policies, policy_probs, scoring_policy_index=scoring_policy_index
             )
 
@@ -96,8 +101,8 @@ def evaluate_model(test_trace: str, model: nn.Module, cache_config: dict, warmup
     memory_trace = MemoryTrace(test_trace, cache_line_size=cache_config["cache_line_size"])
     
     # Initialize greedy learned policy
-    learned_scorer = LearnedScorer(eviction_model)
-    greedy_policy = eviction_policy.GreedyEvictionPolicy(learned_scorer)
+    learned_scorer = LearnedScorer(model)
+    greedy_policy = GreedyEvictionPolicy(learned_scorer)
 
     # Initialize cache
     cache = Cache.from_config(cache_config, eviction_policy=greedy_policy)
@@ -106,7 +111,7 @@ def evaluate_model(test_trace: str, model: nn.Module, cache_config: dict, warmup
     with memory_trace:
 
         # Warmup cache
-        for i in range(warmup_steps):
+        for i in range(warmup_period):
             assert not memory_trace.done(), "memory trace depleted in warmup stage"
             pc, address = memory_trace.next()
             cache.read(pc, address)
@@ -136,7 +141,10 @@ def main(args: argparse.Namespace):
     experiment_folder = os.path.join(args.output_folder, args.experiment_name)
     checkpoint_folder = os.path.join(experiment_folder, "checkpoints")
     logs_file = os.path.join(experiment_folder, "logs.txt")
-    os.makedirs(experiment_folder, exist_ok=args.override_outputs)
+    if args.override_outputs:
+        shutil.rmtree(experiment_folder)
+    os.makedirs(experiment_folder)
+    os.makedirs(checkpoint_folder)
 
 
     # Cache config
@@ -154,7 +162,8 @@ def main(args: argparse.Namespace):
         "sequence_length" : 80,
         "loss" : ["reuse_dist", "log_likelihood"],
         "lr" : 0.001,
-        "epochs" : args.epochs
+        "total_training_steps" : args.total_training_steps,
+        "batch_size" : args.batch_size
     }
 
     # Create DAgger scheduler
@@ -172,19 +181,18 @@ def main(args: argparse.Namespace):
     print(f"Eviction model has {get_num_params(eviction_model) / 1e6:.3f} million parameters")
 
     # Create optimizer
-    optimizer = optim.Adam(policy_model.parameters(), lr=model_config.get("lr"))
+    optimizer = optim.Adam(eviction_model.parameters(), lr=model_config.get("lr"))
 
     # Start training
-    for epoch in range(1, model_config["epochs"] + 1):
+
+    while True:
 
         # Book-keeping
         overall_loss = 0.0
         iterations = 0
 
-        t_epoch_start = time.time()
-
         data_generator = measure_cache_hit_rate(
-            filename, 
+            train_trace, 
             cache_config,
             eviction_model,
             schedule,
@@ -192,7 +200,7 @@ def main(args: argparse.Namespace):
         )
 
         for train_data, hit_rates in data_generator:
-            for batch_number, batch in enumerate(as_batches([train_data], batch_size, model_config["sequence_length"])):
+            for batch_number, batch in enumerate(as_batches([train_data], model_config["batch_size"], model_config["sequence_length"])):
                 optimizer.zero_grad()
                 losses = eviction_model.loss(batch, model_config["sequence_length"]//2)
                 total_loss = sum(losses.values())
@@ -202,26 +210,30 @@ def main(args: argparse.Namespace):
                 # Store checkpoint - yes, this stores the model at time 0
                 if step % args.checkpoint_freq == 0:
                     hit_rate = f"{evaluate_model(test_trace, eviction_model, cache_config):.5f}"
-                    model_name = "checkpoint_step={step}_hr={hit_rate}_torch.pt"
+                    model_name = f"checkpoint_step={step}_hr={hit_rate}_torch.pt"
                     model_path = os.path.join(checkpoint_folder, model_name)
                     checkpoint_buffer = io.BytesIO()
-                    torch.save(policy_model.state_dict(), checkpoint_buffer)
+                    torch.save(eviction_model.state_dict(), checkpoint_buffer)
                     with open(model_path, "wb") as save_file:
-                        save_file.write(checkpoint_buffer.get_value())
+                        save_file.write(checkpoint_buffer.getvalue())
 
                 overall_loss += total_loss.item()
                 iterations += 1
                 step += 1
 
+                description = f"Step: {int(step)} | Average loss: {overall_loss/iterations}"
+                print(description)
+
+                if step == model_config["total_training_steps"]:
+                    print("Training finished!")
+                    return
+
                 # DAgger break
                 if batch_number == schedule_config["update_freq"]:
                     break
 
-            description = f"Epoch: {epoch+1} | Average loss: {overall_loss/iterations}"
+            description = f"Step: {int(step)} | Average loss: {overall_loss/iterations}"
             print(description)
-
-        t_epoch_end = time.time()
-        t_epoch_s = t_epoch_end - t_epoch_start
 
 
 if __name__ == "__main__":
@@ -233,7 +245,8 @@ if __name__ == "__main__":
     parser.add_argument("--output_folder", type=str, default="outputs")
     parser.add_argument("--override_outputs", type=bool, default=False)
     parser.add_argument("--checkpoint_freq", type=int, default=int(1e3))
-    parser.add_argument("--epochs", type=int, default=int(1e7))
+    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--total_training_steps", type=int, default=int(1e6))
     args = parser.parse_args()
 
     main(args)
