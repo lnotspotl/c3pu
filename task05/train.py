@@ -36,7 +36,7 @@ def get_logger(
 
     handlers = list()
     if log_to_file:
-        console = Console(file=open(log_file, "w"), width=300)  # TODO: this file should be closed
+        console = Console(file=open(log_file, "w"), width=120)  # TODO: this file should be closed
         handlers.append(RichHandler(console=console))
 
     if log_to_stdout:
