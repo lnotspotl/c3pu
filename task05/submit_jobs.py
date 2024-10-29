@@ -51,8 +51,8 @@ def main(args: argparse.Namespace):
     CACHE_CONDA_ENV_PATH = os.environ.get("CACHE_CONDA_ENV_PATH")
     CACHE_TASK_PATH = os.environ.get("CACHE_TASK_PATH")
 
-    # assert CACHE_CONDA_ENV_PATH is not None, "Please set CACHE_CONDA_ENV_PATH environment variable."
-    # assert CACHE_TASK_PATH is not None, "Please set CACHE_TASK_PATH environment variable."
+    assert CACHE_CONDA_ENV_PATH is not None, "Please set CACHE_CONDA_ENV_PATH environment variable."
+    assert CACHE_TASK_PATH is not None, "Please set CACHE_TASK_PATH environment variable."
 
     # For each trace, submit a job
     for trace, capacity in itertools.product(traces, args.cache_capacities):
