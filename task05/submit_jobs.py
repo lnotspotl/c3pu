@@ -29,7 +29,8 @@ python3 train.py \
     --trace={trace_name} \
     --override_outputs={override_outputs} \
     --cache_capacity={cache_capacity} \
-    --log_to_file={log_to_file}
+    --log_to_file={log_to_file} \
+    --store_configs={store_configs}
 """
 
 
@@ -78,6 +79,7 @@ def main(args: argparse.Namespace):
                     trace_name=trace.name,
                     override_outputs=args.override_outputs,
                     cache_capacity=int(capacity),
+                    store_configs=args.store_configs,
                 )
             )
         print("Job script written to:", script_path)
@@ -98,6 +100,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_cpus", type=int, default=2)
     parser.add_argument("--log_to_file", type=bool, default=True)
     parser.add_argument("--cache_capacities", type=int, nargs="+", default=[2**21])
+    parser.add_argument("--store_configs", type=bool, default=True)
     args = parser.parse_args()
 
     main(args)

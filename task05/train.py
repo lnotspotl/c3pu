@@ -2,6 +2,7 @@
 
 import argparse
 import io
+import json
 import logging
 import os
 import shutil
@@ -157,6 +158,12 @@ def evaluate_model(test_trace: str, model: nn.Module, cache_config: dict, warmup
     return hit_rate
 
 
+def store_config(filename, config):
+    assert isinstance(config, dict)
+    with open(filename, "w") as f:
+        f.write(json.dumps(config))
+
+
 def main(args: argparse.Namespace):
     # Paths to train, validation and test datasets
     trace_folder = os.path.join(args.input_folder, args.trace)
@@ -168,6 +175,7 @@ def main(args: argparse.Namespace):
 
     # Path to output files
     checkpoint_folder = os.path.join(args.experiment_folder, "checkpoints")
+    config_folder = os.path.join(args.experiment_folder, "configs")
     stats_file = os.path.join(args.experiment_folder, "stats.npz")
     log_file = os.path.join(args.experiment_folder, "train.log")
     if args.override_outputs and os.path.exists(args.experiment_folder):
@@ -203,6 +211,16 @@ def main(args: argparse.Namespace):
         schedule_config["num_steps"], initial_p=schedule_config["initial"], final_p=schedule_config["final"]
     )
     step = 0.0
+
+    # Store all the configs above
+    if args.store_configs:
+        os.makedirs(config_folder, exist_ok=True)
+        model_config_path = os.path.join(config_folder, "model_config.json")
+        cache_config_path = os.path.join(config_folder, "cache_config.json")
+        schedule_config_path = os.path.join(config_folder, "schedule_config.json")
+        store_config(model_config_path, model_config)
+        store_config(cache_config_path, cache_config)
+        store_config(schedule_config_path, schedule_config)
 
     def get_step():
         return step
@@ -295,6 +313,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--total_training_steps", type=int, default=int(1e6))
     parser.add_argument("--log_to_file", type=bool, default=False)
+    parser.add_argument("--store_configs", type=bool, default=True)
     args = parser.parse_args()
 
     main(args)
