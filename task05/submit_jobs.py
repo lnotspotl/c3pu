@@ -61,12 +61,13 @@ def main(args: argparse.Namespace):
         with open(script_path, "w") as f:
             experiment_name = f"{trace.name}_capacity={capacity}"
             experiment_folder = os.path.join(args.output_folder, experiment_name)
+            experiment_folder_full = os.path.abspath(experiment_folder)
 
             if args.override_outputs and os.path.exists(experiment_folder):
                 shutil.rmtree(experiment_folder, ignore_errors=True)
             os.makedirs(experiment_folder, exist_ok=True)
-            stdout_path = os.path.join(experiment_folder, "job_stdout.txt")
-            stderr_path = os.path.join(experiment_folder, "job_stderr.txt")
+            stdout_path = os.path.join(experiment_folder_full, "job_stdout.txt")
+            stderr_path = os.path.join(experiment_folder_full, "job_stderr.txt")
             f.write(
                 JOB_TEMPLATE.format(
                     num_cpus=args.num_cpus,
