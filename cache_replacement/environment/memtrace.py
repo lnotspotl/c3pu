@@ -19,6 +19,7 @@ import abc
 import collections
 import csv
 import os
+
 import numpy as np
 import six
 import tqdm
