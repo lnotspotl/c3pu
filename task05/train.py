@@ -137,13 +137,12 @@ def main(args: argparse.Namespace):
     test_trace = os.path.join(trace_folder, "test.csv")
 
     # Path to output files
-    experiment_folder = os.path.join(args.output_folder, args.experiment_name)
-    checkpoint_folder = os.path.join(experiment_folder, "checkpoints")
-    stats_file = os.path.join(experiment_folder, "stats.npz")
-    if args.override_outputs and os.path.exists(experiment_folder):
-        shutil.rmtree(experiment_folder, ignore_errors=True)
-    os.makedirs(experiment_folder)
-    os.makedirs(checkpoint_folder)
+    checkpoint_folder = os.path.join(args.experiment_folder, "checkpoints")
+    stats_file = os.path.join(args.experiment_folder, "stats.npz")
+    if args.override_outputs and os.path.exists(args.experiment_folder):
+        shutil.rmtree(args.experiment_folder, ignore_errors=True)
+    os.makedirs(args.experiment_folder, exist_ok=True)
+    os.makedirs(checkpoint_folder, exist_ok=True)
 
     # Cache config
     cache_config = {"cache_line_size": 64, "capacity": args.cache_capacity, "associativity": 16}
@@ -255,9 +254,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment_name", type=str)
     parser.add_argument("--trace", type=str)
+    parser.add_argument("--experiment_folder", type=str)
     parser.add_argument("--cache_capacity", type=int, default=2**21)
     parser.add_argument("--input_folder", type=str, default="inputs")
-    parser.add_argument("--output_folder", type=str, default="outputs")
     parser.add_argument("--override_outputs", type=bool, default=False)
     parser.add_argument("--checkpoint_freq", type=int, default=int(1e3))
     parser.add_argument("--batch_size", type=int, default=32)

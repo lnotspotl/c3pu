@@ -2,6 +2,7 @@
 
 import argparse
 import itertools
+import shutil
 import os
 from collections import namedtuple
 
@@ -24,7 +25,7 @@ cd {task_path}
 
 # Start training
 python3 train.py \
-    --experiment_name={experiment_name} \
+    --experiment_folder={experiment_folder} \
     --trace={trace_name} \
     --override_outputs={override_outputs} \
     --cache_capacity={cache_capacity}
@@ -60,6 +61,10 @@ def main(args: argparse.Namespace):
         with open(script_path, "w") as f:
             experiment_name = f"{trace.name}_capacity={capacity}"
             experiment_folder = os.path.join(args.output_folder, experiment_name)
+
+            if args.override_outputs and os.path.exists(experiment_folder):
+                shutil.rmtree(experiment_folder, ignore_errors=True)
+            os.makedirs(experiment_folder, exist_ok=True)
             stdout_path = os.path.join(experiment_folder, "job_stdout.txt")
             stderr_path = os.path.join(experiment_folder, "job_stderr.txt")
             f.write(
@@ -71,7 +76,7 @@ def main(args: argparse.Namespace):
                     job_name=f"train_{trace.name}_capacity={capacity}",
                     conda_env_path=CACHE_CONDA_ENV_PATH,
                     task_path=CACHE_TASK_PATH,
-                    experiment_name=experiment_name,
+                    experiment_folder=experiment_folder,
                     trace_name=trace.name,
                     override_outputs=args.override_outputs,
                     cache_capacity=int(capacity),
