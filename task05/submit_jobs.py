@@ -28,7 +28,8 @@ python3 train.py \
     --experiment_folder={experiment_folder} \
     --trace={trace_name} \
     --override_outputs={override_outputs} \
-    --cache_capacity={cache_capacity}
+    --cache_capacity={cache_capacity} \
+    >> {stdout_path} 2>> {stderr_path}
 """
 
 
