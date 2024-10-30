@@ -55,7 +55,7 @@ def get_job_iterator(traces, args):
     for trace in traces:
         for i in range(len(hyper_args)):
             group = hyper_args[i]
-            for j in range(group):
+            for j in range(len(group)):
                 yield trace, *[other[0] for other in hyper_args[:i]], group[j], *[other[0] for other in hyper_args[i+1:]]
 
 def main(args: argparse.Namespace):
