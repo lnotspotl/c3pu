@@ -30,9 +30,6 @@ from cache_replacement.policy_learning.cache_model.eviction_policy import Learne
 from cache_replacement.policy_learning.cache_model.schedules import LinearSchedule
 from cache_replacement.policy_learning.cache_model.utils import as_batches
 
-# Custom EvictionPolicyModel
-from model import EvictionPolicyModel
-
 
 def get_logger(
     name: str, log_to_stdout: bool = False, log_to_file: bool = False, level: str = "INFO", log_file: str = "./logs.txt"

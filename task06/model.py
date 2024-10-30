@@ -48,6 +48,7 @@ class DummyLogger:
         for fn in ["debug", "info", "warning", "error", "critical"]:
             setattr(self, fn, lambda msg: None)
 
+
 class EvictionPolicyModel(nn.Module):
     """A model that approximates an eviction policy."""
 
