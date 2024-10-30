@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import itertools
 import os
 import shutil
 from collections import namedtuple
@@ -50,13 +49,26 @@ def generate_experiment_name(
 ):
     return f"{trace_name},rnntype={rnn_type},rnn_nonlin={rnn_cell_nonlinearity},rnn_hs={rnn_hidden_size},embed_type={embedding_type},embed_size={embedding_size}"
 
+
 def get_job_iterator(traces, args):
-    hyper_args = [args.rnn_types, args.rnn_cell_nonlinearities, args.rnn_hidden_sizes, args.embedding_types, args.embedding_sizes]
+    hyper_args = [
+        args.rnn_types,
+        args.rnn_cell_nonlinearities,
+        args.rnn_hidden_sizes,
+        args.embedding_types,
+        args.embedding_sizes,
+    ]
     for trace in traces:
         for i in range(len(hyper_args)):
             group = hyper_args[i]
             for j in range(len(group)):
-                yield trace, *[other[0] for other in hyper_args[:i]], group[j], *[other[0] for other in hyper_args[i+1:]]
+                yield (
+                    trace,
+                    *[other[0] for other in hyper_args[:i]],
+                    group[j],
+                    *[other[0] for other in hyper_args[i + 1 :]],
+                )
+
 
 def main(args: argparse.Namespace):
     # Find all possible trace in inputs if it is a folder
