@@ -4,6 +4,8 @@ import argparse
 import os
 from collections import namedtuple
 
+import pandas as pd
+
 from cache_replacement.policy_learning.cache.cache import Cache
 from cache_replacement.policy_learning.cache.eviction_policy import BeladyScorer, GreedyEvictionPolicy
 from cache_replacement.policy_learning.cache.memtrace import MemoryTrace
@@ -71,7 +73,13 @@ def main(args: argparse.Namespace):
         print(f"Evaluating MPKI for {trace.name}")
         mpki = evaluate_mpki(trace.path, cache_config)
         mpki_values[trace.name] = mpki
+        print(f"MPKI for {trace.name}: {mpki}")
+        print("-" * 80)
 
+    # Turn into a pandas frame and then to markdown
+    df = pd.DataFrame(mpki_values.items(), columns=["Trace", "MPKI"])
+    result_file = os.path.join(args.output_folder, "mpki.csv")
+    df.to_csv(result_file, index=False)
     print(mpki_values)
 
 
