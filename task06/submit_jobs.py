@@ -50,6 +50,13 @@ def generate_experiment_name(
 ):
     return f"{trace_name},rnntype={rnn_type},rnn_nonlin={rnn_cell_nonlinearity},rnn_hs={rnn_hidden_size},embed_type={embedding_type},embed_size={embedding_size}"
 
+def get_job_iterator(traces, args):
+    hyper_args = [args.rnn_types, args.rnn_cell_nonlinearities, args.rnn_hidden_sizes, args.embedding_types, args.embedding_sizes]
+    for trace in traces:
+        for i in range(len(hyper_args)):
+            group = hyper_args[i]
+            for j in range(group):
+                yield trace, *[other[0] for other in hyper_args[:i]], group[j], *[other[0] for other in hyper_args[i+1:]]
 
 def main(args: argparse.Namespace):
     # Find all possible trace in inputs if it is a folder
@@ -74,14 +81,7 @@ def main(args: argparse.Namespace):
     assert CACHE_CONDA_ENV_PATH is not None, "Please set CACHE_CONDA_ENV_PATH environment variable."
     assert CACHE_TASK_PATH is not None, "Please set CACHE_TASK_PATH environment variable."
 
-    job_iterator = itertools.product(
-        traces,
-        args.rnn_types,
-        args.rnn_cell_nonlinearities,
-        args.rnn_hidden_sizes,
-        args.embedding_types,
-        args.embedding_sizes,
-    )
+    job_iterator = get_job_iterator(traces, args)
 
     for trace, rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size in job_iterator:
         # Check if this is a duplicate configuration and if so, skip it
@@ -137,12 +137,12 @@ if __name__ == "__main__":
     parser.add_argument("--log_to_file", type=bool, default=True)
     parser.add_argument("--store_configs", type=bool, default=True)
 
-    # Hyper-parameters
+    # Hyper-parameters - first is default - change one parameter at the time!!
     parser.add_argument("--rnn_types", type=str, nargs="+", default=["lstm", "gru", "rnn"])
     parser.add_argument("--rnn_cell_nonlinearities", type=str, nargs="+", default=["tanh", "relu"])
-    parser.add_argument("--rnn_hidden_sizes", type=int, nargs="+", default=[32, 64, 128, 256, 512])
+    parser.add_argument("--rnn_hidden_sizes", type=int, nargs="+", default=[128, 256])
     parser.add_argument("--embedding_types", type=str, nargs="+", default=["dynamic-vocab", "byte"])
-    parser.add_argument("--embedding_sizes", type=int, nargs="+", default=[16, 32, 64, 128])
+    parser.add_argument("--embedding_sizes", type=int, nargs="+", default=[64, 128])
     args = parser.parse_args()
 
     main(args)
