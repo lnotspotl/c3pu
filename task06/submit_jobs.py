@@ -89,9 +89,9 @@ def main(args: argparse.Namespace):
             continue
 
         experiment_name = generate_experiment_name(
-            trace, rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size
+            trace.name, rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size
         )
-        script_path = os.path.join(job_folder, "submit_" + experiment_name)
+        script_path = os.path.join(job_folder, "submit_" + experiment_name + ".sh")
         with open(script_path, "w") as f:
             experiment_folder = os.path.join(args.output_folder, experiment_name)
             if args.override_outputs and os.path.exists(experiment_folder):
