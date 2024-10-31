@@ -11,8 +11,6 @@ JOB_TEMPLATE = """#!/usr/bin/bash --login
 #BSUB -J {job_name}
 #BSUB -o stdout.%J
 #BSUB -e stderr.%J
-#BSUB -q cpu
-#BSUB -R "span[hosts=1]"
 
 # Initialize conda environment
 conda init >> /dev/null 2>&1
@@ -23,7 +21,9 @@ cd {task_directory}
 # Copy over champsim
 cp {champsim_tar} . && tar -xf {champsim_tar} && cd ChampSim
 
+git restore .
 git checkout 8798bed8117b2873e34c47733d2ba4f79b6014d4
+git restore .
 git apply {champsim_patch}
 chmod +x build_champsim.sh && ./build_champsim.sh bimodal no no no no create_llc_trace 1
 cp {trace_path} . 
@@ -37,7 +37,7 @@ mv train.csv ..
 mv valid.csv ..
 mv test.csv ..
 mv llc_access_trace.csv ..
-mv results_* ..
+mv results_{num_instr_in_millions}M/* ..
 
 # Clean up
 cd .. && rm -rf ChampSim && rm champsim.tar.gz
