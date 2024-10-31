@@ -105,7 +105,6 @@ def main(args: argparse.Namespace):
         os.system(f"bsub < {job_script}")
         print("Job submitted!")
         print("-" * 80)
-        break
 
 
 if __name__ == "__main__":
