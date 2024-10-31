@@ -23,3 +23,9 @@ pip3 install -r requirements.txt --no-cache-dir
 # Install  cache_replacement package as an interactive python module
 pip3 install -e .
 ```
+
+## Protect your files from HPC garbage collector
+```bash
+find . -exec touch {} +
+```
+![98hz82](https://github.com/user-attachments/assets/b8787d88-4004-45f8-8b92-914333a54e79)
