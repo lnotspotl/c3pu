@@ -231,7 +231,7 @@ class EvictionPolicyModel(nn.Module):
 
         def create_pc_feature(pc, address):
             return pc ^ address
-        
+
         def create_address_feature(pc, address):
             return address
 

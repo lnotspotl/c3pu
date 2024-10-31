@@ -37,39 +37,6 @@ python3 train.py \
 """
 
 
-def is_duplicate(rnn_type, rnn_cell_nonlinearity):
-    """For all RNN types, changing the internal nonlinearity makes no sense."""
-    if rnn_type != "rnn" and rnn_cell_nonlinearity != "tanh":
-        return True
-    return False
-
-
-def generate_experiment_name(
-    trace_name, rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size
-):
-    return f"{trace_name},rnntype={rnn_type},rnn_nonlin={rnn_cell_nonlinearity},rnn_hs={rnn_hidden_size},embed_type={embedding_type},embed_size={embedding_size}"
-
-
-def get_job_iterator(traces, args):
-    hyper_args = [
-        args.rnn_types,
-        args.rnn_cell_nonlinearities,
-        args.rnn_hidden_sizes,
-        args.embedding_types,
-        args.embedding_sizes,
-    ]
-    for trace in traces:
-        for i in range(len(hyper_args)):
-            group = hyper_args[i]
-            for j in range(len(group)):
-                yield (
-                    trace,
-                    *[other[0] for other in hyper_args[:i]],
-                    group[j],
-                    *[other[0] for other in hyper_args[i + 1 :]],
-                )
-
-
 def main(args: argparse.Namespace):
     # Find all possible trace in inputs if it is a folder
     traces = list()
@@ -93,16 +60,8 @@ def main(args: argparse.Namespace):
     assert CACHE_CONDA_ENV_PATH is not None, "Please set CACHE_CONDA_ENV_PATH environment variable."
     assert CACHE_TASK_PATH is not None, "Please set CACHE_TASK_PATH environment variable."
 
-    job_iterator = get_job_iterator(traces, args)
-
-    for trace, rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size in job_iterator:
-        # Check if this is a duplicate configuration and if so, skip it
-        if is_duplicate(rnn_type, rnn_cell_nonlinearity):
-            continue
-
-        experiment_name = generate_experiment_name(
-            trace.name, rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size
-        )
+    for trace in traces:
+        experiment_name = trace.name
         script_path = os.path.join(job_folder, "submit_" + experiment_name + ".sh")
         with open(script_path, "w") as f:
             experiment_folder = os.path.join(args.output_folder, experiment_name)
@@ -121,11 +80,11 @@ def main(args: argparse.Namespace):
                     trace_name=trace.name,
                     override_outputs=args.override_outputs,
                     store_configs=args.store_configs,
-                    rnn_type=rnn_type,
-                    rnn_cell_nonlinearity=rnn_cell_nonlinearity,
-                    rnn_hidden_size=rnn_hidden_size,
-                    embedding_type=embedding_type,
-                    embedding_size=embedding_size,
+                    rnn_type=args.rnn_type,
+                    rnn_cell_nonlinearity=args.rnn_cell_nonlinearity,
+                    rnn_hidden_size=args.rnn_hidden_size,
+                    embedding_type=args.embedding_type,
+                    embedding_size=args.embedding_size,
                 )
             )
         print("Job script written to:", script_path)
@@ -150,11 +109,11 @@ if __name__ == "__main__":
     parser.add_argument("--store_configs", type=bool, default=True)
 
     # Hyper-parameters - first is default - change one parameter at the time!!
-    parser.add_argument("--rnn_types", type=str, nargs="+", default=["lstm"])
-    parser.add_argument("--rnn_cell_nonlinearities", type=str, nargs="+", default=["tanh"])
-    parser.add_argument("--rnn_hidden_sizes", type=int, nargs="+", default=[128])
-    parser.add_argument("--embedding_types", type=str, nargs="+", default=["dynamic-vocab"])
-    parser.add_argument("--embedding_sizes", type=int, nargs="+", default=[64])
+    parser.add_argument("--rnn_types", type=str, default="lstm")
+    parser.add_argument("--rnn_cell_nonlinearities", type=str, default="tanh")
+    parser.add_argument("--rnn_hidden_sizes", type=int, default=128)
+    parser.add_argument("--embedding_types", type=str, default="dynamic-vocab")
+    parser.add_argument("--embedding_sizes", type=int, default=64)
     args = parser.parse_args()
 
     main(args)

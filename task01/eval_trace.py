@@ -53,6 +53,7 @@ def evaluate_trace(trace_file: str, cache_config: dict) -> float:
     hit_rate = cache_observer.compute_hit_rate()
     return mpki, hit_rate
 
+
 def main(args: argparse.Namespace):
     # Find all available traces
     trace_folders = [
