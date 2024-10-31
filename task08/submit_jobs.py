@@ -109,11 +109,11 @@ if __name__ == "__main__":
     parser.add_argument("--store_configs", type=bool, default=True)
 
     # Hyper-parameters - first is default - change one parameter at the time!!
-    parser.add_argument("--rnn_types", type=str, default="lstm")
-    parser.add_argument("--rnn_cell_nonlinearities", type=str, default="tanh")
-    parser.add_argument("--rnn_hidden_sizes", type=int, default=128)
-    parser.add_argument("--embedding_types", type=str, default="dynamic-vocab")
-    parser.add_argument("--embedding_sizes", type=int, default=64)
+    parser.add_argument("--rnn_type", type=str, default="lstm")
+    parser.add_argument("--rnn_cell_nonlinearity", type=str, default="tanh")
+    parser.add_argument("--rnn_hidden_size", type=int, default=128)
+    parser.add_argument("--embedding_type", type=str, default="dynamic-vocab")
+    parser.add_argument("--embedding_size", type=int, default=64)
     args = parser.parse_args()
 
     main(args)
