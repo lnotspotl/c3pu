@@ -2,7 +2,7 @@
 
 import argparse
 import os
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 
 import pandas as pd
 
