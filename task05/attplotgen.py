@@ -105,7 +105,7 @@ def main(args: argparse.Namespace):
         scores = np.array(row_data)
 
         # Generate attention weights
-        attention_probs = scipy.special.softmax(scores, axis=1)
+        attention_probs = scipy.special.softmax(scores * args.scaling_factor, axis=1)
 
         # Start plotting
         figure_name = f"attention_{fig_idx}"
@@ -126,6 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, help="Directory where attention plots will be stored")
     parser.add_argument("--model_device", type=str, default="cpu")
     parser.add_argument("--batch_size", type=int, help="Number of samples in a single batch")
+    parser.add_argument("--scaling_factor", type=float, default=1.0, help="Attention score scaling factor")
     args = parser.parse_args()
 
     main(args)
