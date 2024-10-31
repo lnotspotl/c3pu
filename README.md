@@ -28,4 +28,6 @@ pip3 install -e .
 ```bash
 find . -exec touch {} +
 ```
-![98hz82](https://github.com/user-attachments/assets/b8787d88-4004-45f8-8b92-914333a54e79)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b8787d88-4004-45f8-8b92-914333a54e79" width=350 />
+</p>
