@@ -43,23 +43,9 @@ mv results_{num_instr_in_millions}M/* ..
 cd .. && rm -rf ChampSim && rm champsim.tar.gz
 """
 
-DEFAULT_TRACES = [
-    "astar_23B.trace.xz",
-    "bwaves_98B.trace.xz",
-    "bzip2_183B.trace.xz",
-    "gcc_13B.trace.xz",
-    "gamess_196B.trace.xz",
-    "leslie3d_94B.trace.xz",
-    "mcf_46B.trace.xz",
-    "milc_360B.trace.xz",
-    "namd_400B.trace.xz",
-    "omnetpp_4B.trace.xz",
-    "perlbench_53B.trace.xz",
-    "povray_250B.trace.xz",
-    "sjeng_358B.trace.xz",
-    "sphinx3_883B.trace.xz",
-]
 
+DEFAULT_TRACES = ['astar', 'bwaves', 'bzip2', 'gcc', 'gamess', 'leslie3d',
+                   'mcf', 'milc', 'namd', 'omnetpp', 'perlbench', 'povray', 'sjeng', 'sphinx3']
 
 def main(args: argparse.Namespace):
     CACHE_CONDA_ENV_PATH = os.environ.get("CACHE_CONDA_ENV_PATH")
@@ -68,7 +54,13 @@ def main(args: argparse.Namespace):
     assert CACHE_CONDA_ENV_PATH is not None, "Please set CACHE_CONDA_ENV_PATH environment variable."
     assert CACHE_TASK_PATH is not None, "Please set CACHE_TASK_PATH environment variable."
 
-    for trace in args.traces:
+    # Find all trace_<number>B.trace.xz in args.folder_with_traces
+    traces = list()
+    for file in os.listdir(args.folder_with_traces):
+        if file.split("_")[0] in args.traces:
+            traces.append(file)
+
+    for trace in traces:
         job_name = "generate_" + trace.replace(".xz", "")
         job_folder = os.path.join(args.output_folder, job_name)
         job_script = os.path.join(job_folder, "job.sh")
