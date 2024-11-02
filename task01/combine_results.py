@@ -8,7 +8,7 @@ import pandas as pd
 
 
 def read_from_file(file_path: str):
-    "Read MPKI and hit rate from a file"
+    """Read MPKI and hit rate from a file"""
 
     with open(file_path, "r") as file:
         mpki = float(file.readline().strip().split(" ")[-1])
