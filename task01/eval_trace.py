@@ -26,7 +26,7 @@ class CacheObserver:
         return (self.cache_misses / self.num_instructions) * 1000
 
     def compute_hit_rate(self):
-        return self.cache_misses / self.cache_accesses
+        return 1.0 - self.cache_misses / self.cache_accesses
 
 
 def evaluate_trace(trace_file: str, cache_config: dict) -> float:
@@ -49,7 +49,8 @@ def evaluate_trace(trace_file: str, cache_config: dict) -> float:
 
     # Calculate MPKI and hit rate
     with memtrace:
-        while not memtrace.done():
+        for read_idx in tqdm.tqdm(range(num_cache_accesses), desc=f"trace: {}"):
+            assert not memtrace.done()
             pc, address = memtrace.next()
             cache.read(pc, address, observers=[cache_observer])
     mpki = cache_observer.compute_mpki()
