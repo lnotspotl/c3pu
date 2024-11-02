@@ -35,8 +35,8 @@ def main(args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--results_folder", type=str, default="inputs")
-    parser.add_argumnet("--output_csv", type=str, default="outputs.csv")
+    parser.add_argument("--results_folder", type=str, required=True)
+    parser.add_argument("--output_csv", type=str, default="outputs.csv")
     args = parser.parse_args()
 
     main(args)
