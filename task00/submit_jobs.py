@@ -44,8 +44,23 @@ cd .. && rm -rf ChampSim && rm champsim.tar.gz
 """
 
 
-DEFAULT_TRACES = ['astar', 'bwaves', 'bzip2', 'gcc', 'gamess', 'leslie3d',
-                   'mcf', 'milc', 'namd', 'omnetpp', 'perlbench', 'povray', 'sjeng', 'sphinx3']
+DEFAULT_TRACES = [
+    "astar",
+    "bwaves",
+    "bzip2",
+    "gcc",
+    "gamess",
+    "leslie3d",
+    "mcf",
+    "milc",
+    "namd",
+    "omnetpp",
+    "perlbench",
+    "povray",
+    "sjeng",
+    "sphinx3",
+]
+
 
 def main(args: argparse.Namespace):
     CACHE_CONDA_ENV_PATH = os.environ.get("CACHE_CONDA_ENV_PATH")
