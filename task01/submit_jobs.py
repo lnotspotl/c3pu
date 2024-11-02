@@ -36,7 +36,7 @@ def main(args: argparse.Namespace):
         trace = "llc_access_trace.csv"
         trace_path = os.path.join(folder_path, trace)
         assert os.path.isfile(trace_path), f"llc_access_trace.csv does not exist in {folder_path}"
-        traces.append(Trace(name=f"{trace_folder}/{trace}", path=trace_path))
+        traces.append(Trace(name=trace_folder, path=trace_path))
 
     CACHE_CONDA_ENV_PATH = os.environ.get("CACHE_CONDA_ENV_PATH")
     CACHE_TASK_PATH = os.environ.get("CACHE_TASK_PATH")
