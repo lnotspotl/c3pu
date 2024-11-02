@@ -66,7 +66,7 @@ def main(args: argparse.Namespace):
         for trace in os.listdir(folder_path):
             if trace.endswith(".csv"):
                 trace_path = os.path.join(folder_path, trace)
-                traces.append(Trace(name=trace, path=trace_path))
+                traces.append(Trace(name=f"{trace_folder}/{trace}", path=trace_path))
 
     # Just one cache config - might want to evaluate MPKI for multiple cache configurations
     cache_config = {"cache_line_size": 64, "capacity": 2**21, "associativity": 16}
