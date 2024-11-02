@@ -63,10 +63,10 @@ def main(args: argparse.Namespace):
     Trace = namedtuple("Trace", ["name", "path"])
     for trace_folder in trace_folders:
         folder_path = os.path.join(args.input_folder, trace_folder)
-        for trace in os.listdir(folder_path):
-            if trace.endswith(".csv"):
-                trace_path = os.path.join(folder_path, trace)
-                traces.append(Trace(name=f"{trace_folder}/{trace}", path=trace_path))
+        trace = "llc_access_trace.csv"
+        trace_path = os.path.join(folder_path, trace)
+        assert os.path.isfile(trace_path), f"llc_access_trace.csv does not exist in {folder_path}"
+        traces.append(Trace(name=f"{trace_folder}/{trace}", path=trace_path))
 
     # Just one cache config - might want to evaluate MPKI for multiple cache configurations
     cache_config = {"cache_line_size": 64, "capacity": 2**21, "associativity": 16}
