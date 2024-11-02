@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import tqdm
 from collections import namedtuple
 
 import pandas as pd
@@ -49,7 +50,7 @@ def evaluate_trace(trace_file: str, cache_config: dict) -> float:
 
     # Calculate MPKI and hit rate
     with memtrace:
-        for read_idx in tqdm.tqdm(range(num_cache_accesses), desc=f"trace: {}"):
+        for read_idx in tqdm.tqdm(range(num_cache_accesses), desc=f"trace: {trace_file}"):
             assert not memtrace.done()
             pc, address = memtrace.next()
             cache.read(pc, address, observers=[cache_observer])
