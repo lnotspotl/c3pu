@@ -181,6 +181,9 @@ def main(args: argparse.Namespace):
     trace_folder = os.path.join(args.input_folder, args.trace)
     assert os.path.exists(trace_folder), f"Trace folder `{trace_folder}` does not exist."
 
+    # Set number of cpu cores
+    torch.set_num_threads(args.num_cpus)
+
     train_trace = os.path.join(trace_folder, "train.csv")
     valid_trace = os.path.join(trace_folder, "valid.csv")
     test_trace = os.path.join(trace_folder, "test.csv")
@@ -247,7 +250,7 @@ def main(args: argparse.Namespace):
     model_logger = get_logger(
         "[EvictionModel]", log_to_stdout=True, log_to_file=args.log_to_file, log_file=log_file
     )  # Note: logging is thread safe :)
-    eviction_model = EvictionPolicyModel.from_config(model_config, logger=model_logger).to(device)
+    eviction_model = EvictionPolicyModel.from_config(model_config, logger=model_logger, sanity=args.sanity).to(device)
     logger.info(f"Eviction model has {get_num_params(eviction_model) / 1e6:.3f} million parameters")
 
     # Create optimizer
@@ -332,6 +335,7 @@ if __name__ == "__main__":
     parser.add_argument("--log_to_file", type=bool, default=False)
     parser.add_argument("--store_configs", type=bool, default=True)
     parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--num_cpus", type=int, default=1)
 
     # Hyper-parameters
     parser.add_argument("--rnn_type", type=str, default="lstm")
@@ -339,6 +343,7 @@ if __name__ == "__main__":
     parser.add_argument("--rnn_hidden_size", type=int, default=128)
     parser.add_argument("--embedding_type", type=str, default="dynamic-vocab")
     parser.add_argument("--embedding_size", type=int, default=64)
+    parser.add_argument("--sanity", type=bool, default=False, help="Model should not learn anything if True")
 
     args = parser.parse_args()
 

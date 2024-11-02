@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import itertools
 import os
 import shutil
 from collections import namedtuple
@@ -11,6 +12,7 @@ JOB_TEMPLATE = """#!/usr/bin/bash --login
 #BSUB -J {job_name}
 #BSUB -o stdout.%J
 #BSUB -e stderr.%J
+{queue_options}
 #BSUB -q gpu
 #BSUB -gpu "num=1:mode=shared:mps=no"
 #BSUB -R "span[hosts=1]"
@@ -29,12 +31,20 @@ python3 train.py \
     --override_outputs={override_outputs} \
     --log_to_file={log_to_file} \
     --store_configs={store_configs} \
-    --rnn_type={rnn_type} \
-    --rnn_cell_nonlinearity={rnn_cell_nonlinearity} \
-    --rnn_hidden_size={rnn_hidden_size} \
-    --embedding_type={embedding_type} \
-    --embedding_size={embedding_size}
+    --sanity={sanity} \
+    --num_cpus={num_cpus}
 """
+
+GPU_OPTIONS = """
+#BSUB -q gpu
+#BSUB -gpu "num=1:mode=shared:mps=no"
+#BSUB -R "span[hosts=1]"
+"""
+
+CPU_OPTIONS = """"""
+
+JOB_TEMPLATE_GPU = JOB_TEMPLATE.format(queue_options=GPU_OPTIONS)
+JOB_TEMPLATE_CPU = JOB_TEMPLATE.format(queue_options=CPU_OPTIONS)
 
 
 def main(args: argparse.Namespace):
@@ -60,31 +70,28 @@ def main(args: argparse.Namespace):
     assert CACHE_CONDA_ENV_PATH is not None, "Please set CACHE_CONDA_ENV_PATH environment variable."
     assert CACHE_TASK_PATH is not None, "Please set CACHE_TASK_PATH environment variable."
 
-    for trace in traces:
-        experiment_name = trace.name
+    for trace, sanity in itertools.product(traces, [False, True]):
+        experiment_name = trace.name + f"_sanity={sanity}"
         script_path = os.path.join(job_folder, "submit_" + experiment_name + ".sh")
         with open(script_path, "w") as f:
             experiment_folder = os.path.join(args.output_folder, experiment_name)
             if args.override_outputs and os.path.exists(experiment_folder):
                 shutil.rmtree(experiment_folder, ignore_errors=True)
             os.makedirs(experiment_folder, exist_ok=True)
+            template = JOB_TEMPLATE_GPU if args.queue == "gpu" else JOB_TEMPLATE_CPU
             f.write(
-                JOB_TEMPLATE.format(
+                template.format(
                     num_cpus=args.num_cpus,
                     log_to_file=args.log_to_file,
                     job_time_minutes=str(args.job_time_minutes),
-                    job_name="train_" + experiment_name,
+                    job_name="task08_" + experiment_name,
                     conda_env_path=CACHE_CONDA_ENV_PATH,
                     task_path=CACHE_TASK_PATH,
                     experiment_folder=experiment_folder,
                     trace_name=trace.name,
                     override_outputs=args.override_outputs,
                     store_configs=args.store_configs,
-                    rnn_type=args.rnn_type,
-                    rnn_cell_nonlinearity=args.rnn_cell_nonlinearity,
-                    rnn_hidden_size=args.rnn_hidden_size,
-                    embedding_type=args.embedding_type,
-                    embedding_size=args.embedding_size,
+                    sanity=sanity,
                 )
             )
         print("Job script written to:", script_path)
@@ -107,13 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_cpus", type=int, default=2)
     parser.add_argument("--log_to_file", type=bool, default=True)
     parser.add_argument("--store_configs", type=bool, default=True)
-
-    # Hyper-parameters - first is default - change one parameter at the time!!
-    parser.add_argument("--rnn_type", type=str, default="lstm")
-    parser.add_argument("--rnn_cell_nonlinearity", type=str, default="tanh")
-    parser.add_argument("--rnn_hidden_size", type=int, default=128)
-    parser.add_argument("--embedding_type", type=str, default="dynamic-vocab")
-    parser.add_argument("--embedding_size", type=int, default=64)
+    parser.add_argument("--queue", type=str, default="gpu")
     args = parser.parse_args()
 
     main(args)

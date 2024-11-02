@@ -11,6 +11,7 @@ JOB_TEMPLATE = """#!/usr/bin/bash --login
 #BSUB -J {job_name}
 #BSUB -o stdout.%J
 #BSUB -e stderr.%J
+{queue_options}
 #BSUB -q gpu
 #BSUB -gpu "num=1:mode=shared:mps=no"
 #BSUB -R "span[hosts=1]"
@@ -33,41 +34,20 @@ python3 train.py \
     --rnn_cell_nonlinearity={rnn_cell_nonlinearity} \
     --rnn_hidden_size={rnn_hidden_size} \
     --embedding_type={embedding_type} \
-    --embedding_size={embedding_size}
+    --embedding_size={embedding_size} \
+    --num_cpus={num_cpus}
 """
 
+GPU_OPTIONS = """
+#BSUB -q gpu
+#BSUB -gpu "num=1:mode=shared:mps=no"
+#BSUB -R "span[hosts=1]"
+"""
 
-def is_duplicate(rnn_type, rnn_cell_nonlinearity):
-    """For all RNN types, changing the internal nonlinearity makes no sense."""
-    if rnn_type != "rnn" and rnn_cell_nonlinearity != "tanh":
-        return True
-    return False
+CPU_OPTIONS = """"""
 
-
-def generate_experiment_name(
-    trace_name, rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size
-):
-    return f"{trace_name},rnntype={rnn_type},rnn_nonlin={rnn_cell_nonlinearity},rnn_hs={rnn_hidden_size},embed_type={embedding_type},embed_size={embedding_size}"
-
-
-def get_job_iterator(traces, args):
-    hyper_args = [
-        args.rnn_types,
-        args.rnn_cell_nonlinearities,
-        args.rnn_hidden_sizes,
-        args.embedding_types,
-        args.embedding_sizes,
-    ]
-    for trace in traces:
-        for i in range(len(hyper_args)):
-            group = hyper_args[i]
-            for j in range(len(group)):
-                yield (
-                    trace,
-                    *[other[0] for other in hyper_args[:i]],
-                    group[j],
-                    *[other[0] for other in hyper_args[i + 1 :]],
-                )
+JOB_TEMPLATE_GPU = JOB_TEMPLATE.format(queue_options=GPU_OPTIONS)
+JOB_TEMPLATE_CPU = JOB_TEMPLATE.format(queue_options=CPU_OPTIONS)
 
 
 def main(args: argparse.Namespace):
@@ -93,46 +73,41 @@ def main(args: argparse.Namespace):
     assert CACHE_CONDA_ENV_PATH is not None, "Please set CACHE_CONDA_ENV_PATH environment variable."
     assert CACHE_TASK_PATH is not None, "Please set CACHE_TASK_PATH environment variable."
 
-    job_iterator = get_job_iterator(traces, args)
-
-    for trace, rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size in job_iterator:
-        # Check if this is a duplicate configuration and if so, skip it
-        if is_duplicate(rnn_type, rnn_cell_nonlinearity):
-            continue
-
-        experiment_name = generate_experiment_name(
-            trace.name, rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size
-        )
-        script_path = os.path.join(job_folder, "submit_" + experiment_name + ".sh")
-        with open(script_path, "w") as f:
-            experiment_folder = os.path.join(args.output_folder, experiment_name)
-            if args.override_outputs and os.path.exists(experiment_folder):
-                shutil.rmtree(experiment_folder, ignore_errors=True)
-            os.makedirs(experiment_folder, exist_ok=True)
-            f.write(
-                JOB_TEMPLATE.format(
-                    num_cpus=args.num_cpus,
-                    log_to_file=args.log_to_file,
-                    job_time_minutes=str(args.job_time_minutes),
-                    job_name="train_" + experiment_name,
-                    conda_env_path=CACHE_CONDA_ENV_PATH,
-                    task_path=CACHE_TASK_PATH,
-                    experiment_folder=experiment_folder,
-                    trace_name=trace.name,
-                    override_outputs=args.override_outputs,
-                    store_configs=args.store_configs,
-                    rnn_type=rnn_type,
-                    rnn_cell_nonlinearity=rnn_cell_nonlinearity,
-                    rnn_hidden_size=rnn_hidden_size,
-                    embedding_type=embedding_type,
-                    embedding_size=embedding_size,
+    for trace in traces:
+        for hyperparam in args.hyperparameters:
+            rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size = hyperparam
+            experiment_name = trace.name + "_" + str(hyperparam).replace(" ", "")
+            script_path = os.path.join(job_folder, "submit_" + experiment_name + ".sh")
+            with open(script_path, "w") as f:
+                experiment_folder = os.path.join(args.output_folder, experiment_name)
+                if args.override_outputs and os.path.exists(experiment_folder):
+                    shutil.rmtree(experiment_folder, ignore_errors=True)
+                os.makedirs(experiment_folder, exist_ok=True)
+                template = JOB_TEMPLATE_GPU if args.queue == "gpu" else JOB_TEMPLATE_CPU
+                f.write(
+                    template.format(
+                        num_cpus=args.num_cpus,
+                        log_to_file=args.log_to_file,
+                        job_time_minutes=str(args.job_time_minutes),
+                        job_name="task06_" + experiment_name,
+                        conda_env_path=CACHE_CONDA_ENV_PATH,
+                        task_path=CACHE_TASK_PATH,
+                        experiment_folder=experiment_folder,
+                        trace_name=trace.name,
+                        override_outputs=args.override_outputs,
+                        store_configs=args.store_configs,
+                        rnn_type=rnn_type,
+                        rnn_cell_nonlinearity=rnn_cell_nonlinearity,
+                        rnn_hidden_size=rnn_hidden_size,
+                        embedding_type=embedding_type,
+                        embedding_size=embedding_size,
+                    )
                 )
-            )
-        print("Job script written to:", script_path)
-        print(f"Submitting job for trace {trace.name} with experiment name: {experiment_name}")
-        os.system(f"bsub < {script_path}")
-        print("Job submitted!")
-        print("-" * 80)
+            print("Job script written to:", script_path)
+            print(f"Submitting job for trace {trace.name} with experiment name: {experiment_name}")
+            os.system(f"bsub < {script_path}")
+            print("Job submitted!")
+            print("-" * 80)
 
     print("All jobs submitted!")
 
@@ -148,13 +123,24 @@ if __name__ == "__main__":
     parser.add_argument("--num_cpus", type=int, default=2)
     parser.add_argument("--log_to_file", type=bool, default=True)
     parser.add_argument("--store_configs", type=bool, default=True)
-
-    # Hyper-parameters - first is default - change one parameter at the time!!
-    parser.add_argument("--rnn_types", type=str, nargs="+", default=["lstm", "gru", "rnn"])
-    parser.add_argument("--rnn_cell_nonlinearities", type=str, nargs="+", default=["tanh", "relu"])
-    parser.add_argument("--rnn_hidden_sizes", type=int, nargs="+", default=[128, 256])
-    parser.add_argument("--embedding_types", type=str, nargs="+", default=["dynamic-vocab", "byte"])
-    parser.add_argument("--embedding_sizes", type=int, nargs="+", default=[64, 128])
+    parser.add_argument("--queue", type=str, default="gpu")
     args = parser.parse_args()
+
+    # Define hyper-parameter configurations
+    Hyperparameters = namedtuple(
+        "Hyperparameters", ["rnn_type", "rnn_cell_nonlinearity", "rnn_hidden_size", "embedding_type", "embedding_size"]
+    )
+    hyperparameters = [
+        Hyperparameters("lstm", "tanh", 128, "dynamic-vocab", 64),
+        Hyperparameters("gru", "tanh", 128, "dynamic-vocab", 64),
+        Hyperparameters("rnn", "tanh", 128, "dynamic-vocab", 64),
+        Hyperparameters("rnn", "relu", 128, "dynamic-vocab", 64),
+        Hyperparameters("lstm", "tanh", 256, "dynamic-vocab", 64),
+        Hyperparameters("lstm", "tanh", 128, "byte", 64),
+        Hyperparameters("lstm", "tanh", 128, "dynamic-vocab", 128),
+        Hyperparameters("lstm", "tanh", 128, "dynamic-vocab", 32),
+    ]
+
+    args.hyperparameters = hyperparameters
 
     main(args)

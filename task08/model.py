@@ -53,7 +53,7 @@ class EvictionPolicyModel(nn.Module):
     """A model that approximates an eviction policy."""
 
     @classmethod
-    def from_config(cls, config, logger=DummyLogger()):
+    def from_config(cls, config, logger=DummyLogger(), sanity=False):
         """Creates a model from the config.
 
         Args:
@@ -99,6 +99,7 @@ class EvictionPolicyModel(nn.Module):
             rnn_type=config.get("rnn_type"),
             nonlinearity=config.get("rnn_cell_nonlinearity"),
             logger=logger,
+            sanity=sanity,
         )
 
     def __init__(
@@ -114,6 +115,7 @@ class EvictionPolicyModel(nn.Module):
         rnn_type="lstm",
         nonlinearity="tanh",
         logger=DummyLogger(),
+        sanity=False,
     ):
         """Constructs a model to predict evictions from a EvictionEntries history.
 
@@ -185,6 +187,7 @@ class EvictionPolicyModel(nn.Module):
         if loss_fns is None:
             loss_fns = {"log_likelihood": LogProbLoss()}
         self._loss_fns = loss_fns
+        self.sanity = sanity
 
         self.logger.info(str(self))
 
@@ -238,11 +241,12 @@ class EvictionPolicyModel(nn.Module):
         pc_features = [create_pc_feature(pc, address) for pc, address in zip(pcs, addresses)]
         address_features = [create_address_feature(pc, address) for pc, address in zip(pcs, addresses)]
 
+        # Apply sanity multiplier
+        pc_features = [pcf * (1 - self.sanity)  for pcf in pc_features]
+        address_features = [af * (1 - self.sanity) for af in address_features]
+
         pc_embedding = self._pc_embedder(pc_features)
         address_embedding = self._address_embedder(address_features)
-
-        pc_embedding = self._pc_embedder([cache_access.pc for cache_access in cache_accesses])
-        address_embedding = self._address_embedder([cache_access.address for cache_access in cache_accesses])
 
         # Each (batch_size, hidden_size)
         next_c, next_h = self._lstm_cell(torch.cat((pc_embedding, address_embedding), -1), hidden_state)

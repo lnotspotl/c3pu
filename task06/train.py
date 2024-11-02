@@ -181,6 +181,9 @@ def main(args: argparse.Namespace):
     trace_folder = os.path.join(args.input_folder, args.trace)
     assert os.path.exists(trace_folder), f"Trace folder `{trace_folder}` does not exist."
 
+    # Set number of cpus
+    torch.set_num_threads(args.num_cpus)
+
     train_trace = os.path.join(trace_folder, "train.csv")
     valid_trace = os.path.join(trace_folder, "valid.csv")
     test_trace = os.path.join(trace_folder, "test.csv")
@@ -332,6 +335,7 @@ if __name__ == "__main__":
     parser.add_argument("--log_to_file", type=bool, default=False)
     parser.add_argument("--store_configs", type=bool, default=True)
     parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--num_cpus", type=int, default=2)
 
     # Hyper-parameters
     parser.add_argument("--rnn_type", type=str, default="lstm")

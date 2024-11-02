@@ -2,6 +2,7 @@
 
 import argparse
 import itertools
+import math
 import os
 import shutil
 from collections import namedtuple
@@ -12,6 +13,7 @@ JOB_TEMPLATE = """#!/usr/bin/bash --login
 #BSUB -J {job_name}
 #BSUB -o stdout.%J
 #BSUB -e stderr.%J
+{queue_options}
 #BSUB -q gpu
 #BSUB -gpu "num=1:mode=shared:mps=no"
 #BSUB -R "span[hosts=1]"
@@ -32,6 +34,17 @@ python3 train.py \
     --log_to_file={log_to_file} \
     --store_configs={store_configs}
 """
+
+GPU_OPTIONS = """
+#BSUB -q gpu
+#BSUB -gpu "num=1:mode=shared:mps=no"
+#BSUB -R "span[hosts=1]"
+"""
+
+CPU_OPTIONS = """"""
+
+JOB_TEMPLATE_GPU = JOB_TEMPLATE.format(queue_options=GPU_OPTIONS)
+JOB_TEMPLATE_CPU = JOB_TEMPLATE.format(queue_options=CPU_OPTIONS)
 
 
 def main(args: argparse.Namespace):
@@ -67,12 +80,13 @@ def main(args: argparse.Namespace):
             if args.override_outputs and os.path.exists(experiment_folder):
                 shutil.rmtree(experiment_folder, ignore_errors=True)
             os.makedirs(experiment_folder, exist_ok=True)
+            template = JOB_TEMPLATE_GPU if args.queue == "gpu" else JOB_TEMPLATE_CPU
             f.write(
-                JOB_TEMPLATE.format(
+                template.format(
                     num_cpus=args.num_cpus,
                     log_to_file=args.log_to_file,
                     job_time_minutes=str(args.job_time_minutes),
-                    job_name=f"train_{trace.name}_capacity={capacity}",
+                    job_name=f"task05_{trace.name}_capacity=2**{int(math.log2(capacity))}",
                     conda_env_path=CACHE_CONDA_ENV_PATH,
                     task_path=CACHE_TASK_PATH,
                     experiment_folder=experiment_folder,
@@ -101,6 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("--log_to_file", type=bool, default=True)
     parser.add_argument("--cache_capacities", type=int, nargs="+", default=[2**21])
     parser.add_argument("--store_configs", type=bool, default=True)
+    parser.add_argument("--queue", type=str, default="gpu")
     args = parser.parse_args()
 
     main(args)
