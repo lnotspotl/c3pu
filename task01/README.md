@@ -56,3 +56,10 @@ Highlighted are members of three different trace families with the highest `mpki
 | sphinx3_883B    | `6.459224`   | `0.541340` |
 | sphinx3_1339B   | `4.240573`   | `0.690700` |
 | sphinx3_2520B   | `3.296253`   | `0.746955` |
+
+---
+
+MPKI and hit rate values are stored in 
+```
+/share/ece592f24/team-ajak/outputs/task01
+```
