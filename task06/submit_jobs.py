@@ -73,7 +73,7 @@ def main(args: argparse.Namespace):
     for trace in traces:
         for hyperparam in args.hyperparameters:
             rnn_type, rnn_cell_nonlinearity, rnn_hidden_size, embedding_type, embedding_size = hyperparam
-            experiment_name = trace.name + "_" + str(hyperparam).replace(" ", "")
+            experiment_name = trace.name + "_" + str(hyperparam).replace(" ", "").replace("(", "_").replace(")", "")
             script_path = os.path.join(job_folder, "submit_" + experiment_name + ".sh")
             with open(script_path, "w") as f:
                 experiment_folder = os.path.join(args.output_folder, experiment_name)
