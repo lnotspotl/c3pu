@@ -22,6 +22,8 @@ def main(args: argparse.Namespace):
     TraceStatistics = namedtuple("TraceStatistics", ["trace", "mpki", "hit_rate"])
 
     for trace_file in os.listdir(args.results_folder):
+        if not trace_file.endswith(".txt"):
+            continue
         trace_name = trace_file.split(".")[0]  # remove the .txt extension
         trace_path = os.path.join(args.results_folder, trace_file)
         mpki, hit_rate = read_from_file(trace_path)
