@@ -168,7 +168,7 @@ def store_config(filename, config):
 
 def get_embedder_config(embedding_type: str, embedding_size: int):
     if embedding_type == "dynamic-vocab":
-        return {"type": "dynamic-vocab", "embed_dim": embedding_size, "max_vocab_size": 10000}
+        return {"type": "dynamic-vocab", "embed_dim": embedding_size, "max_vocab_size": 5000}
 
     if embedding_type == "byte":
         return {"type": "byte", "embed_dim": embedding_size, "bytes_per_entry": embedding_size // 8}

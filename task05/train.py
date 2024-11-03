@@ -194,8 +194,8 @@ def main(args: argparse.Namespace):
 
     # Model config
     model_config = {
-        "address_embedder": {"type": "dynamic-vocab", "embed_dim": 64, "max_vocab_size": 10000},
-        "pc_embedder": {"type": "dynamic-vocab", "embed_dim": 64, "max_vocab_size": 10000},
+        "address_embedder": {"type": "dynamic-vocab", "embed_dim": 64, "max_vocab_size": 5000},
+        "pc_embedder": {"type": "dynamic-vocab", "embed_dim": 64, "max_vocab_size": 5000},
         "cache_line_embedder": "address_embedder",
         "cache_pc_embedder": "none",
         "positional_embedder": {"type": "positional", "embed_dim": 128},
