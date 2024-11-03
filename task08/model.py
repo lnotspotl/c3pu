@@ -242,7 +242,7 @@ class EvictionPolicyModel(nn.Module):
         address_features = [create_address_feature(pc, address) for pc, address in zip(pcs, addresses)]
 
         # Apply sanity multiplier
-        pc_features = [pcf * (1 - self.sanity)  for pcf in pc_features]
+        pc_features = [pcf * (1 - self.sanity) for pcf in pc_features]
         address_features = [af * (1 - self.sanity) for af in address_features]
 
         pc_embedding = self._pc_embedder(pc_features)

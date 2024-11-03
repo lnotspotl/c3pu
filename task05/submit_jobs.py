@@ -44,9 +44,6 @@ GPU_OPTIONS = """
 
 CPU_OPTIONS = """"""
 
-JOB_TEMPLATE_GPU = JOB_TEMPLATE.format(queue_options=GPU_OPTIONS)
-JOB_TEMPLATE_CPU = JOB_TEMPLATE.format(queue_options=CPU_OPTIONS)
-
 
 def main(args: argparse.Namespace):
     # Find all possible trace in inputs if it is a folder
@@ -81,9 +78,8 @@ def main(args: argparse.Namespace):
             if args.override_outputs and os.path.exists(experiment_folder):
                 shutil.rmtree(experiment_folder, ignore_errors=True)
             os.makedirs(experiment_folder, exist_ok=True)
-            template = JOB_TEMPLATE_GPU if args.queue == "gpu" else JOB_TEMPLATE_CPU
             f.write(
-                template.format(
+                JOB_TEMPLATE.format(
                     num_cpus=args.num_cpus,
                     log_to_file=args.log_to_file,
                     job_time_minutes=str(args.job_time_minutes),
@@ -95,6 +91,7 @@ def main(args: argparse.Namespace):
                     override_outputs=args.override_outputs,
                     cache_capacity=int(capacity),
                     store_configs=args.store_configs,
+                    queue_options=GPU_OPTIONS if args.queue == "gpu" else CPU_OPTIONS,
                 )
             )
         print("Job script written to:", script_path)
