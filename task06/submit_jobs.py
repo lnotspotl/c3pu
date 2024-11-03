@@ -12,9 +12,6 @@ JOB_TEMPLATE = """#!/usr/bin/bash --login
 #BSUB -o stdout.%J
 #BSUB -e stderr.%J
 {queue_options}
-#BSUB -q gpu
-#BSUB -gpu "num=1:mode=shared:mps=no"
-#BSUB -R "span[hosts=1]"
 
 # Initialize conda environment
 conda init >> /dev/null 2>&1
