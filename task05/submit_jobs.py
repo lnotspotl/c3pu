@@ -32,7 +32,8 @@ python3 train.py \
     --override_outputs={override_outputs} \
     --cache_capacity={cache_capacity} \
     --log_to_file={log_to_file} \
-    --store_configs={store_configs}
+    --store_configs={store_configs} \
+    --num_cpus={num_cpus}
 """
 
 GPU_OPTIONS = """
