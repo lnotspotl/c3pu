@@ -3,16 +3,15 @@
 import argparse
 import json
 import os
-import torch
 
+import torch
 import tqdm
+from model import EvictionPolicyModel
 
 from cache_replacement.policy_learning.cache.cache import Cache
 from cache_replacement.policy_learning.cache.eviction_policy import GreedyEvictionPolicy
 from cache_replacement.policy_learning.cache.memtrace import MemoryTrace
 from cache_replacement.policy_learning.cache_model.eviction_policy import LearnedScorer
-
-from model import EvictionPolicyModel
 
 JOB_TEMPLATE = """#!/usr/bin/bash --login
 #BSUB -n {num_cpus}
