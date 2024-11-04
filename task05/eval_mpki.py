@@ -29,7 +29,6 @@ cd {task_path}
 # Start training
 python3 eval_mpki.py \
     --eval_mpki=True \
-    --submit_script=False \
     --trace_file={trace_file} \
     --cache_config_path={cache_config_path} \
     --model_config_path={model_config_path} \
@@ -209,10 +208,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    assert args.eval_mpki ^ args.submit_script, "Must specify either --eval_mpki or --submit_script"
-
     if args.eval_mpki:
+        assert args.submit_script is False, "Cannot submit script when evaluating MPKI"
         eval_mpki(args)
 
     if args.submit_script:
+        assert args.eval_mpki is False, "Cannot evaluate MPKI when submitting script"
         submit_jobs(args)
