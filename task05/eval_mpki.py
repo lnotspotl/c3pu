@@ -145,8 +145,8 @@ def evaluate_trace(trace_file: str, cache_config: dict, model_config: dict, chec
     # Determine number of cache accesses
     num_cache_accesses = sum(1 for _ in open(trace_file))
     multiplier = num_cache_accesses / int(1e7)
-    num_instructions = min(num_cache_accesses, int(1e7))
-    if num_instructions == int(1e7):
+    num_cache_accesses = min(num_cache_accesses, int(1e7))
+    if num_cache_accesses == int(1e7):
         multiplier = 1.0
 
     # Load memory trace into memory
