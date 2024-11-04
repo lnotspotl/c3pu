@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import torch
 
 import tqdm
 
@@ -10,6 +11,8 @@ from cache_replacement.policy_learning.cache.cache import Cache
 from cache_replacement.policy_learning.cache.eviction_policy import GreedyEvictionPolicy
 from cache_replacement.policy_learning.cache.memtrace import MemoryTrace
 from cache_replacement.policy_learning.cache_model.eviction_policy import LearnedScorer
+
+from model import EvictionPolicyModel
 
 JOB_TEMPLATE = """#!/usr/bin/bash --login
 #BSUB -n {num_cpus}
@@ -156,7 +159,11 @@ def evaluate_trace(trace_file: str, cache_config: dict, model_config: dict, chec
     )
 
     # Initialize Belady's optimal eviction policy
-    learned_scorer = LearnedScorer.from_model_checkpoint(model_config, checkpoint_path)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    torch.set_default_device(device)
+    learned_model = EvictionPolicyModel.from_config(model_config).to(device)
+    learned_model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    learned_scorer = LearnedScorer(learned_model)
     learned_policy = GreedyEvictionPolicy(learned_scorer)
 
     # Initialize cache
