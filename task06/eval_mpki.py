@@ -211,7 +211,7 @@ if __name__ == "__main__":
     parser.add_argument("--results_file", type=str)
     parser.add_argument("--num_cpus", type=int, default=1)
     parser.add_argument("--use_gpu", type=bool, default=False)
-    parser.add_argument("--job_time_minutes", type=int, default=700)
+    parser.add_argument("--job_time_minutes", type=int, default=500)
 
     args = parser.parse_args()
 
