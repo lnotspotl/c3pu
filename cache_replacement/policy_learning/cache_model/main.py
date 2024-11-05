@@ -32,6 +32,8 @@ Trains full model with all additions on trained and validated on the sample trac
 
 import io
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from absl import app
 from absl import flags
 from absl import logging
