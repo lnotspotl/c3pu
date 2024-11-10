@@ -75,6 +75,8 @@ def main(args: argparse.Namespace):
 
     # Load checkpoints into memory
     t2astar_ckpt = "task11/checkpoints/t2astar3_68000.ckpt"
+    t3astar_ckpt = "task11/checkpoints/t3astar3_68000.ckpt"
+    t4astar_ckpt = "task11/checkpoints/t4astar3_68000.ckpt"
 
     # Initialize task02-04 eviction policies
     t2_model = model02.EvictionPolicyModel.from_config(model_0203_config)
@@ -84,18 +86,38 @@ def main(args: argparse.Namespace):
     t2_scorer = LearnedScorer(t2_model)
     t2_policy = GreedyEvictionPolicy(t2_scorer)
 
+    t3_model = model03.EvictionPolicyModel.from_config(model_0203_config)
+    if t3astar_ckpt is not None:
+        with open(t3astar_ckpt, "rb") as f:
+            t3_model.load_state_dict(torch.load(f, map_location=torch.device('cpu')))
+    t3_scorer = LearnedScorer(t3_model)
+    t3_policy = GreedyEvictionPolicy(t3_scorer)
+
+    t4_model = model04.EvictionPolicyModel.from_config(default_config)
+    if t4astar_ckpt is not None:
+        with open(t4astar_ckpt, "rb") as f:
+            t4_model.load_state_dict(torch.load(f, map_location=torch.device('cpu')))
+    t4_scorer = LearnedScorer(t4_model)
+    t4_policy = GreedyEvictionPolicy(t4_scorer)
+
     # Initialize observers
     lru_observer = CacheObserver()
     t2_observer = CacheObserver()
+    t3_observer = CacheObserver()
+    t4_observer = CacheObserver()
 
     belady_lru_observer = CacheObserver()
-    belady_t2_observer = CacheObserver()
+    belady_t2_observer = CacheObserver() # NOTE: not sure if this is necessary
+    belady_t3_observer = CacheObserver()
+    belady_t4_observer = CacheObserver()
 
     # Initialize caches
     lru_cache = Cache.from_config(cache_config, eviction_policy=lru_policy)
     t2_cache = Cache.from_config(cache_config, eviction_policy=t2_policy)
+    t3_cache = Cache.from_config(cache_config, eviction_policy=t3_policy)
+    t4_cache = Cache.from_config(cache_config, eviction_policy=t4_policy)
 
-    # Initialize DAgger
+    # Initialize DAgger NOTE: not sure if this is necessary
     dagger_schedule_config = cfg.Config.from_files_and_bindings(
         ['cache_replacement/policy_learning/cache_model/configs/schedule/linear.json'],[])
     dagger_schedule = schedules.LinearSchedule(dagger_schedule_config.get("num_steps"), 
@@ -114,24 +136,36 @@ def main(args: argparse.Namespace):
             # Clone cache with Belady's optimal eviction policy
             belady_lru_cache = lru_cache.clone(belady_policy)
             belady_t2_cache = t2_cache.clone(belady_policy)
+            belady_t3_cache = t3_cache.clone(belady_policy)
+            belady_t4_cache = t4_cache.clone(belady_policy)
 
             # Cache hit or miss
             lru_hit = lru_cache.read(pc, address)
             t2_hit = t2_cache.read(pc, address)
+            t3_hit = t3_cache.read(pc, address)
+            t4_hit = t4_cache.read(pc, address)
 
             # Update observers
             lru_observer.update(lru_hit)
             t2_observer.update(t2_hit)
+            t3_observer.update(t3_hit)
+            t4_observer.update(t4_hit)
 
             belady_lru_observer.update(belady_lru_cache.read(pc, address))
             belady_t2_observer.update(belady_t2_cache.read(pc, address))
+            belady_t3_observer.update(belady_t3_cache.read(pc, address))
+            belady_t4_observer.update(belady_t4_cache.read(pc, address))
 
             # Default to no evicted line
             lru_eviction = None
             t2_eviction = None
+            t3_eviction = None
+            t4_eviction = None
 
             belady_lru_eviction = None
             belady_t2_eviction = None
+            belady_t3_eviction = None
+            belady_t4_eviction = None
 
             # Get evicted line
             if not lru_hit and lru_cache.last_evicted_cache_line is not None:
@@ -141,10 +175,24 @@ def main(args: argparse.Namespace):
             if not t2_hit and t2_cache.last_evicted_cache_line is not None:
                 t2_eviction = hex(t2_cache.last_evicted_cache_line)
                 belady_t2_eviction = hex(belady_t2_cache.last_evicted_cache_line)
+                
+            if not t3_hit and t3_cache.last_evicted_cache_line is not None:
+                t3_eviction = hex(t3_cache.last_evicted_cache_line)
+                belady_t3_eviction = hex(belady_t3_cache.last_evicted_cache_line)
+
+            if not t2_hit and t2_cache.last_evicted_cache_line is not None:
+                t4_eviction = hex(t4_cache.last_evicted_cache_line)
+                belady_t4_eviction = hex(belady_t4_cache.last_evicted_cache_line)
 
             f.write(
-                f"PC: {hex(pc)} | Policy02 Evicted {t2_eviction} | Belady02 Evicted: {belady_t2_eviction} LRU Evicted: {lru_eviction} | Belady Evicted: {belady_lru_eviction}\n"
+                    f"PC: {hex(pc)} |"
+                    f"Belady Evicted: {belady_lru_eviction} |"
+                    f"LRU Evicted: {lru_eviction} |"
+                    f"Policy02 Evicted: {t2_eviction} | Belady02 Evicted: {belady_t2_eviction} |"
+                    f"Policy03 Evicted: {t3_eviction} | Belady03 Evicted: {belady_t3_eviction} |"
+                    f"Policy04 Evicted: {t4_eviction} | Belady04 Evicted: {belady_t4_eviction}\n"
             )
+
 
             if read_idx == 10000:
                 break
@@ -153,12 +201,20 @@ def main(args: argparse.Namespace):
     # Compute mpki
     lru_mpki = lru_observer.compute_mpki()
     t2_mpki = t2_observer.compute_mpki()
+    t3_mpki = t3_observer.compute_mpki()
+    t4_mpki = t4_observer.compute_mpki()
 
     lru_hit_rate = lru_observer.compute_hit_rate() * 100
     t2_hit_rate = t2_observer.compute_hit_rate() * 100
+    t3_hit_rate = t2_observer.compute_hit_rate() * 100
+    t4_hit_rate = t2_observer.compute_hit_rate() * 100
 
-    print(f"From stats: {lru_cache.hit_rate_statistic.success_rate() * 100 }")
-    print(f"MPKI: {lru_mpki}, Hit rate: {lru_hit_rate}")
+    print(f"From stats: {lru_cache.hit_rate_statistic.success_rate() * 100 }\n")
+    print(f"LRU MPKI: {lru_mpki}, Hit rate: {lru_hit_rate}\n")
+    print(f"Task02 MPKI: {t2_mpki}, Hit rate: {t2_hit_rate}\n")
+    print(f"Task03 MPKI: {t3_mpki}, Hit rate: {t3_hit_rate}\n")
+    print(f"Task04 MPKI: {t4_mpki}, Hit rate: {t4_hit_rate}\n")
+    
 
 
 if __name__ == "__main__":

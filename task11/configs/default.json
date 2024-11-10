@@ -3,7 +3,7 @@
   "address_embedder": {
     "type": "dynamic-vocab",
     "embed_dim": 64,
-    "max_vocab_size": 10000
+    "max_vocab_size": 5000
   },
   "pc_embedder": {
     "type": "dynamic-vocab",
