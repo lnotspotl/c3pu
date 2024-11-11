@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 '''
-Run from cache/task11:
-python -m raggen --trace_file=../cache_replacement/policy_learning/cache/traces/astar_valid.csv
+Run from cache:
+python -m raggen \
+    --output_folder="./outputs" \
+    --rag_file="rag_data_100.txt" \
+    --model_checkpoint=68000 \
+    --num_instructions=100
 '''
 
 import argparse
@@ -49,17 +53,19 @@ class CacheObserver:
 
 
 def main(args: argparse.Namespace):
+    # Number of instructions to run
+    max_read_idx = args.num_instructions - 1
+
     # Cache config
     cache_config = {"cache_line_size": 64, "capacity": 64 * 16 * 64, "associativity": 16}
 
-    workloads = ["task11/traces/astar_313B_test.csv",
-                 "task11/traces/lbm_564B_test.csv",
-                 "task11/traces/mcf_250B_test.csv",
-                 "task11/traces/milc_409B_test.csv",
-                 "task11/traces/omnetpp_4B_test.csv"]
+    workloads = ["traces/astar_313B_test.csv",
+                 "traces/lbm_564B_test.csv",
+                 "traces/mcf_250B_test.csv",
+                 "traces/milc_409B_test.csv",
+                 "traces/omnetpp_4B_test.csv"]
     
     pattern = r"traces/([^_]+)_"
-
     for workloadNum, workload in enumerate(workloads):
 
         # Determine number of cache accesses 
@@ -80,16 +86,17 @@ def main(args: argparse.Namespace):
         lru_policy = GreedyEvictionPolicy(lru_scorer)
 
         # Model configs
-        model_0203_config = ["task11/configs/model02-03_config.json"]
+        model_0203_config = ["configs/model02-03_config.json"]
         model_0203_config = cfg.Config.from_files_and_bindings(model_0203_config, [])
 
-        default_config = ["task11/configs/default.json"]
+        default_config = ["configs/default.json"]
         default_config = cfg.Config.from_files_and_bindings(default_config, [])
 
         # Load checkpoints into memory
-        t2astar_ckpt = "task11/checkpoints/t2astar3_68000.ckpt"
-        t3astar_ckpt = "task11/checkpoints/t3astar3_68000.ckpt"
-        t4astar_ckpt = "task11/checkpoints/t4astar3_68000.ckpt"
+        checkpoint = args.model_checkpoint
+        t2astar_ckpt = "checkpoints/t2astar3" + f"_{checkpoint}.ckpt"
+        t3astar_ckpt = "checkpoints/t3astar3" + f"_{checkpoint}.ckpt"
+        t4astar_ckpt = "checkpoints/t4astar3" + f"_{checkpoint}.ckpt"
 
         # Initialize task02-04 eviction policies
         t2_model = model02.EvictionPolicyModel.from_config(model_0203_config)
@@ -129,13 +136,6 @@ def main(args: argparse.Namespace):
         t2_cache = Cache.from_config(cache_config, eviction_policy=t2_policy)
         t3_cache = Cache.from_config(cache_config, eviction_policy=t3_policy)
         t4_cache = Cache.from_config(cache_config, eviction_policy=t4_policy)
-
-        # Initialize DAgger NOTE: not sure if this is necessary
-        dagger_schedule_config = cfg.Config.from_files_and_bindings(
-            ['cache_replacement/policy_learning/cache_model/configs/schedule/linear.json'],[])
-        dagger_schedule = schedules.LinearSchedule(dagger_schedule_config.get("num_steps"), 
-                                                dagger_schedule_config.get("final"), 
-                                                dagger_schedule_config.get("initial"))
 
         assert os.path.exists(args.output_folder), f"Output folder {args.output_folder} does not exist"
         if workloadNum == 0:
@@ -213,7 +213,7 @@ def main(args: argparse.Namespace):
                 )
 
 
-                if read_idx == 999: # Number of instructions to run
+                if read_idx == max_read_idx: # Number of instructions to run
                     break
     f.close()
 
@@ -239,10 +239,10 @@ def main(args: argparse.Namespace):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--trace_file", type=str, default='cache_replacement/policy_learning/cache/traces/astar_valid.csv')
-    parser.add_argument("--model_checkpoint", type=str, default="68000.ckpt")
-    parser.add_argument("--output_folder", type=str, default="task11/outputs")
+    parser.add_argument("--output_folder", type=str, default="./outputs")
     parser.add_argument("--rag_file", type=str, default="rag_data.txt")
+    parser.add_argument("--model_checkpoint", type=int, default=68000)
+    parser.add_argument("--num_instructions", type=int, default=1000)
     args = parser.parse_args()
 
     main(args)
