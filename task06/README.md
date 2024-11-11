@@ -75,3 +75,10 @@ python3 attcombine.py --input_dir <path-to-input-dir> --output_video <path-to-ou
 | `milc_409B` | `LSTM`     | `tanh`                  | `256`             | `dynamic-vocab`  | `64`             | `2.58`          | `26.26`    | `Parrot`  |
 | `milc_409B` | `RNN`      | `relu`                  | `128`             | `dynamic-vocab`  | `64`             | `1.92`          | `26.44`    | `Parrot` |
 | `milc_409B` | `RNN`      | `tanh`                  | `128`             | `dynamic-vocab`  | `64`             | `2.00`          | `26.42`    | `Parrot`  |
+
+
+## Plots
+![astar_plot8](https://github.com/user-attachments/assets/8e0336ee-8690-4673-886e-1b7523cf2206)
+![mcf_plot8](https://github.com/user-attachments/assets/c5c9700b-0d9a-4b9f-8131-26c860a78fbc)
+![milc_plot8](https://github.com/user-attachments/assets/88e64777-dbf3-4a56-ac5f-651f20d75b99)
+
