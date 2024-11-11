@@ -65,3 +65,10 @@ python3 attcombine.py --input_dir <path-to-input-dir> --output_video <path-to-ou
 | `milc_409B`  | `2**21`     | `2.78`       | `26.20` | `Parrot` |
 | `milc_409B`  | `2**22`     | `3.57`       | `25.99` | `Parrot` |
 
+## Plots
+
+![astar_plots](https://github.com/user-attachments/assets/03757ae1-5623-4d1a-8262-5cf8ffbe0fa8)
+
+![mcf_plots](https://github.com/user-attachments/assets/e70826e3-cec3-4556-90cb-f92f3965460a)
+
+![milc_plots](https://github.com/user-attachments/assets/0f2e333e-ec47-4a50-9feb-d704b3ccb84c)
