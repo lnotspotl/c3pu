@@ -112,7 +112,7 @@ def submit_jobs(args: argparse.Namespace):
             cache_config_path=cache_config_path,
             model_config_path=model_config_path,
             checkpoint_path=best_checkpoint,
-            results_file=os.path.join(model_path, "eval_mpki_results.csv"),
+            results_file=os.path.join(model_path, "eval_mpki_results2.csv"),
             job_time_minutes=args.job_time_minutes,
         )
 
@@ -125,22 +125,28 @@ def submit_jobs(args: argparse.Namespace):
 
 
 class CacheObserver:
-    def __init__(self, mult):
-        self.cache_accesses = 0
-        self.cache_misses = 0
+    def __init__(self, multiplier=1):
+        self.reset()
         self.num_instructions = 1_000_000_000  # champsim simulates this number of instructions and than crashes
-        self.mult = mult
+        self.multiplier = multiplier
 
-    def __call__(self, cache_access, eviction_decision):
-        is_miss = eviction_decision.evict
-        self.cache_misses += int(is_miss)
+    def update(self, hit):
+        self.cache_hits += int(hit)
         self.cache_accesses += 1
 
+    def reset(self):
+        self.cache_accesses = 0
+        self.cache_hits = 0
+
+    @property
+    def cache_misses(self):
+        return self.cache_accesses - self.cache_hits
+
     def compute_mpki(self):
-        return ((self.cache_misses * self.mult) / self.num_instructions) * 1000
+        return (self.cache_misses * self.multiplier / self.num_instructions) * 1000
 
     def compute_hit_rate(self):
-        return 1.0 - self.cache_misses / self.cache_accesses
+        return self.cache_hits / self.cache_accesses
 
 
 def evaluate_trace(trace_file: str, cache_config: dict, model_config: dict, checkpoint_path: str) -> float:
@@ -175,7 +181,7 @@ def evaluate_trace(trace_file: str, cache_config: dict, model_config: dict, chec
     with memtrace:
         for read_idx in tqdm.tqdm(range(num_cache_accesses), desc=f"trace: {trace_file}"):
             pc, address = memtrace.next()
-            cache.read(pc, address, observers=[cache_observer])
+            cache_observer.update(cache.read(pc, address))
     mpki = cache_observer.compute_mpki()
     hit_rate = cache_observer.compute_hit_rate()
     return mpki, hit_rate
