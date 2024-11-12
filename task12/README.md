@@ -12,6 +12,7 @@ python runqa.py --rag_file <rag-file> --query "<question>"
 python runqa.py --rag_file path/to/rag_data_100.txt --query "<question>"
 ```
 
+#### Question 1
 ```
 Q: What is cache memory, cache set, PC?
 A: Cache memory is a small-sized type of volatile computer memory that provides high-speed data storage and access to the processor. It is used to store frequently accessed data and instructions to reduce the average time to access memory.
@@ -23,13 +24,17 @@ PC stands for Program Counter, which is a register in a computer processor that 
 [CORRECT]
 ```
 
+#### Question 2:
+
 ```
+Question 2:
 Q: What is a cache hit and a cache miss?
 A: A cache hit occurs when the CPU requests data that is already stored in the cache memory, resulting in faster access time. On the other hand, a cache miss happens when the CPU requests data that is not present in the cache, leading to a longer access time as the data needs to be fetched from the main memory.
 
 [CORRECT]
 ```
 
+#### Question 3:
 ```
 Q: Could you please look at the memory trace of astar benchmark from accesses 1 to 100 and find an example of eviction where policy matches belady?
 A: Looking at the memory trace of the astar benchmark from accesses 1 to 100, we can see the following eviction where the policy matches Belady:
@@ -41,6 +46,7 @@ In this case, both Belady and Policy04 evicted the same memory address 0x1cf5ad1
 [CORRECT]
 ```
 
+#### Question 4:
 ```
 Q: Could you please look at the memory trace of astar benchmark from accesses 1 to 200 and find an example of eviction where policy matches belady?
 A: I don't have the specific memory trace for accesses 1 to 200 of the astar benchmark to provide you with an example of an eviction where the policy matches Belady.
@@ -48,6 +54,7 @@ A: I don't have the specific memory trace for accesses 1 to 200 of the astar ben
 [INCORRECT]
 ```
 
+#### Question 5:
 ```
 Q: What did policy02 evict when the PC was 0x401e1b
 A: When the PC was 0x401e1b, Policy02 evicted the address 0x1edc2b90efd.
@@ -55,6 +62,7 @@ A: When the PC was 0x401e1b, Policy02 evicted the address 0x1edc2b90efd.
 [CORRECT] - `rag_data_100.txt: line 154`
 ```
 
+#### Question 6
 ```
 Q: What is the structure of the context
 A: The context consists of multiple entries, each representing an eviction scenario for different workloads and policies. Each entry includes the workload name, the program counter (PC), and the evicted addresses for Belady, LRU, Policy02, Belady02, Policy03, Belady03, Policy04, and Belady04.
@@ -62,6 +70,7 @@ A: The context consists of multiple entries, each representing an eviction scena
 [CORRECT]
 ```
 
+#### Question 7:
 ```
 Q: What eviction policies are being tested and what policy is the reference optimal policy?
 A: The eviction policies being tested are Belady, LRU, Policy02, Policy03, and Policy04. The reference optimal policy is Belady.
@@ -69,6 +78,7 @@ A: The eviction policies being tested are Belady, LRU, Policy02, Policy03, and P
 [CORRECT]
 ```
 
+#### Question 8:
 ```
 Q: What traces are included?
 A: The traces included are for two workloads: `omnetpp` and `astar`.
@@ -77,6 +87,7 @@ A: The traces included are for two workloads: `omnetpp` and `astar`.
 [INCORRECT] - Should be omnetpp, astar and lbm
 ```
 
+#### Question 9:
 ```
 Q: What traces are included?
 A: The traces included in the data are omnetpp, astar, and lbm.
@@ -85,6 +96,7 @@ A: The traces included in the data are omnetpp, astar, and lbm.
 [CORRECT]
 ```
 
+#### Question 10:
 ```
 Q: Where did policy02 fail and what may have been the reason? Talk about policy02's underlying neural network architecture
 A: Policy02 failed in the eviction process when the cache line with the address 0x32446c95d3e was evicted. The reason for this failure could be related to the neural network architecture underlying Policy02. Policy02 is a single-layer model MLP (Multi-Layer Perceptron), which might not have been able to capture the complex patterns and dependencies in the cache access patterns effectively. The single-layer MLP may lack the depth and complexity needed to learn and predict the optimal eviction decisions accurately, leading to suboptimal evictions like the one observed.
@@ -96,6 +108,7 @@ Therefore, the failure of Policy02 in the eviction process could be attributed t
 [¯\_(ツ)_/¯]
 ```
 
+#### Question 11:
 ```
 Q: Generally, would you expect policy02 to outperform policy04? Talk about each of the traces files individually
 A: Based on the MPKI values provided for Policy02 and Policy04 across the different trace files, we can make the following observations:
@@ -120,6 +133,7 @@ Therefore, based on the provided MPKI values, Policy02 generally outperforms Pol
 [CORRECT]
 ```
 
+#### Question 12
 ```
 Q: What could be added to the RAG file for you to be able to analyze the evictions and policies in more depth?
 A: To analyze the evictions and policies in more depth, you could add the following information to the RAG file:
