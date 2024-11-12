@@ -34,7 +34,7 @@ Policy04: omnetpp: 0.15811, astar: 0.94474, lbm: 0.95424
 
 Policy02 is a single layer model MLP.
 Policy03 is two-layer model MLP.
-Policy04 is original Parror model with RNN used instead of an LSTM.
+Policy04 is original Parror model with RNN used instead of LSTM
 
 """
 
