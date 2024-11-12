@@ -25,12 +25,3 @@ python3 prompter_one_shot.py --rag_file=<path-to-rag-file> --query=<question> --
 ```bash
 python3 prompter_self_consistency.py --rag_file=<path-to-rag-file> --query=<question> --num_queries=3
 ```
-
-
-## llama fine-tuning tutorial
-
-
-
-```
-https://www.datacamp.com/tutorial/fine-tuning-llama-2
-```
