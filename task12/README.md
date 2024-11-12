@@ -13,10 +13,39 @@ python runqa.py --rag_file path/to/rag_data_100.txt --query "<question>"
 ```
 
 ```
-Q: What is the meaning of PC
-A: In the context provided, "PC" stands for Program Counter. The Program Counter is a register in a computer processor that indicates the address of the next instruction to be executed.
+Q: What is cache memory, cache set, PC?
+A: Cache memory is a small-sized type of volatile computer memory that provides high-speed data storage and access to the processor. It is used to store frequently accessed data and instructions to reduce the average time to access memory.
+
+A cache set is a group of cache lines that share the same index in the cache memory. The associativity of the cache determines how many cache lines are in each set.
+
+PC stands for Program Counter, which is a register in a computer processor that contains the address of the instruction being executed.
 
 [CORRECT]
+```
+
+```
+Q: What is a cache hit and a cache miss?
+A: A cache hit occurs when the CPU requests data that is already stored in the cache memory, resulting in faster access time. On the other hand, a cache miss happens when the CPU requests data that is not present in the cache, leading to a longer access time as the data needs to be fetched from the main memory.
+
+[CORRECT]
+```
+
+```
+Q: Could you please look at the memory trace of astar benchmark from accesses 1 to 100 and find an example of eviction where policy matches belady?
+A: Looking at the memory trace of the astar benchmark from accesses 1 to 100, we can see the following eviction where the policy matches Belady:
+
+- Workload: astar | PC: 0x405832 | Belady Evicted: 0x1cf5ad16fb5 | Policy04 Evicted: 0x1cf5ad16fb5
+
+In this case, both Belady and Policy04 evicted the same memory address 0x1cf5ad16fb5.
+
+[CORRECT]
+```
+
+```
+Q: Could you please look at the memory trace of astar benchmark from accesses 1 to 200 and find an example of eviction where policy matches belady?
+A: I don't have the specific memory trace for accesses 1 to 200 of the astar benchmark to provide you with an example of an eviction where the policy matches Belady.
+
+[INCORRECT]
 ```
 
 ```
