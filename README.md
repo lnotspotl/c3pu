@@ -1,7 +1,7 @@
 # raggen
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/1ea28c12-bef7-4811-94fb-8d6448e0b8b0" width=350 />
+  <img src="https://github.com/user-attachments/assets/1ea28c12-bef7-4811-94fb-8d6448e0b8b0" width=350 />\n
   Slangin' data and shootin' the RAG.
 </p>
 
