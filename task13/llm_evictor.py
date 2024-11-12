@@ -216,7 +216,6 @@ if __name__ == "__main__":
     parser.add_argument("--rag_file", type=str, required=True)
     parser.add_argument("--use_cached_vector_db", type=bool, default=True)
     parser.add_argument("--log_level", type=str, default="info")
-    parser.add_argument("--output_folder", type=str, default="./outputs")
     args = parser.parse_args()
 
     main(args)

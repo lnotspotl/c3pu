@@ -75,7 +75,7 @@ def main(args: argparse.Namespace):
     text_splitter = CharacterTextSplitter(separator="\n")
     docs = text_splitter.split_documents(docs)
 
-    llm = ChatOpenAI(model="gpt-3.5-turbo")
+    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7)
     embedding = OpenAIEmbeddings()
 
     persist_directory = "./outputs/chroma_db"
