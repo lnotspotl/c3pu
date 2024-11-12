@@ -12,6 +12,9 @@ python3 llm_evictor.py --memory_trace=<path-to-memory-trace> --rag_file=<path-to
 python3 prompter_zero_shot.py --rag_file=<path-to-rag-file> --query=<question>
 ```
 
+Check out [example prompts and answers](https://github.com/lnotspotl/raggen/tree/main/task12)
+
+
 ### One-shot prompting
 
 
