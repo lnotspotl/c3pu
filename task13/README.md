@@ -3,8 +3,11 @@
 ### Using LLM as a replacement policy
 
 ```bash
-python3 llm_evictor.py --memory_trace=<path-to-memory-trace> --rag_file=<path-to-rag-file>
+python3 gpt_evictor.py --memory_trace=<path-to-memory-trace> --rag_file=<path-to-rag-file>
 ```
+
+Generally, the LLM replacement policy does not work great and exhibits little to no performance.
+There is still a lot of work to be done on this front.
 
 ### Zero-shot prompting
 
