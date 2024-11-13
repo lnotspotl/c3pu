@@ -41,9 +41,27 @@ I don't have the specific memory trace for accesses 1 to 200 of the astar benchm
 ```
 
 On the other hand, self-consistent LLM responds with (and succeeds)
-```
+
+```bash
 Looking at the memory trace of the astar benchmark from accesses 1 to 200, we can see the following eviction where policy matches Belady:
 - Workload: astar | PC: 0x409270 | Belady Evicted: 0x31232a40e93 | Policy04 Evicted: 0x31232a40e93                                                                            
                                                                                                                                                                                                   
 In this case, both the Belady eviction and the Policy04 eviction have the same memory address, which is 0x31232a40e93.
 ```
+
+### Fine-tuning Llama3 cache replacement policy
+
+```bash
+python3 finetune_llama_evictor.py --memory_trace_file=<path-to-trace-file> --output_dir=<path-where-to-store-finetuned-model>
+```
+
+
+### Using fine-tuned Llama3 as a replacement policy
+
+```bash
+python3 finetuned_llama_evictor.py --memory_trace_file=<path-to-trace-file> --model_dir=<path-to-where-finetuned-model-is>
+```
+
+
+
+
