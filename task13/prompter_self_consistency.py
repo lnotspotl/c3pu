@@ -104,7 +104,7 @@ def main(args: argparse.Namespace):
     for response in responses:
         final_query += f"\n\n{response}"
     final_query += "\n\n"
-    final_query += f"Please respond with the most consistent answer to the question above."
+    final_query += "Please respond with the most consistent answer to the question above."
 
     logger.info(f"Final query: {final_query}")
     final_response = rag_chain.invoke({"query": final_query})
