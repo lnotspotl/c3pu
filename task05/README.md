@@ -42,7 +42,7 @@ python3 attcombine.py --input_dir <path-to-input-dir> --output_video <path-to-ou
 
 ## Results
 
-| Trace | Cache Capacity (bytes) | Hit Rate (%) | MPKI  | Replacement Policy |
+| Trace | Cache Capacity (bits) | Hit Rate (%) | MPKI  | Replacement Policy |
 |-------|----------|--------------|-------|-----------|
 | `astar_313B`  | `2**21`     | `38.26`       | `27.90` | `Bellady` |
 | `astar_313B`  | `2**20`     | `31.02`       | `31.18` | `Parrot` |
@@ -50,7 +50,7 @@ python3 attcombine.py --input_dir <path-to-input-dir> --output_video <path-to-ou
 | `astar_313B`  | `2**22`     | `34.29`       | `29.69` | `Parrot` |
 
 
-| Trace | Cache Capacity (bytes) | Hit Rate (%) | MPKI  | Replacement Policy |
+| Trace | Cache Capacity (bits) | Hit Rate (%) | MPKI  | Replacement Policy |
 |-------|----------|--------------|-------|-----------|
 | `mcf_250B`  | `2**21`     | `46.71`       | `65.96` | `Bellady` |
 | `mcf_250B`  | `2**20`     | `44.41`       | `68.82` | `Parrot` |
@@ -58,7 +58,7 @@ python3 attcombine.py --input_dir <path-to-input-dir> --output_video <path-to-ou
 | `mcf_250B`  | `2**22`     | `45.99`       | `66.87` | `Parrot` |
 
 
-| Trace | Cache Capacity (bytes) | Hit Rate (%) | MPKI  | Replacement Policy |
+| Trace | Cache Capacity (bits) | Hit Rate (%) | MPKI  | Replacement Policy |
 |-------|----------|--------------|-------|-----------|
 | `milc_409B`  | `2**21`     | `6.54`       | `25.19` | `Bellady` |
 | `milc_409B`  | `2**20`     | `2.76`       | `26.21` | `Parrot` |
