@@ -67,8 +67,7 @@ python3 attcombine.py --input_dir <path-to-input-dir> --output_video <path-to-ou
 
 ## Plots
 
-![astar_plots](https://github.com/user-attachments/assets/03757ae1-5623-4d1a-8262-5cf8ffbe0fa8)
 
-![mcf_plots](https://github.com/user-attachments/assets/e70826e3-cec3-4556-90cb-f92f3965460a)
-
-![milc_plots](https://github.com/user-attachments/assets/0f2e333e-ec47-4a50-9feb-d704b3ccb84c)
+![astar_plots](https://github.com/user-attachments/assets/31e450a7-a164-410f-9d1f-6150e8dee825)
+![mcf_plots](https://github.com/user-attachments/assets/b671f4d6-892d-4c30-9b08-2e693816cbe0)
+![milc_plots](https://github.com/user-attachments/assets/32c5c53c-b7a0-47cc-b0ac-8464894d9e2a)
