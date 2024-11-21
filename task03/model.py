@@ -127,6 +127,11 @@ class EvictionPolicyModel(nn.Module):
         self._cache_line_embedder = cache_line_embedder
         self._cache_pc_embedder = cache_pc_embedder
         # self._lstm_cell = nn.LSTMCell(pc_embedder.embed_dim + address_embedder.embed_dim, lstm_hidden_size)
+
+        self._mlp1 = nn.Linear(pc_embedder.embed_dim + address_embedder.embed_dim +
+                               cache_line_embedder.embed_dim + cache_pc_embedder.embed_dim, 
+                               pc_embedder.embed_dim + address_embedder.embed_dim +
+                               cache_line_embedder.embed_dim + cache_pc_embedder.embed_dim)
         
         self._positional_embedder = positional_embedder
         # query_dim = cache_line_embedder.embed_dim
@@ -229,12 +234,14 @@ class EvictionPolicyModel(nn.Module):
             cache_pc_embeddings = self._cache_pc_embedder(cache_pcs).view(batch_size, num_cache_lines, -1)
             cache_line_embeddings = torch.cat((cache_line_embeddings, cache_pc_embeddings), -1)
 
-# Single Liner Layer
-        # Create MLP Input tensor
+# Create MLP Input tensor
         # (batch_size, #cache_lines, address_embedding + pc_embedding)
         cache_access_embeddings = cache_access_embeddings.expand(-1, num_cache_lines, -1)
         # (batch_size, num_cache_lines, cache_access_embedding + cache_line_embedding)
-        single_layer_input=torch.cat((cache_access_embeddings, cache_line_embeddings), dim=-1)
+        mlp_input=torch.cat((cache_access_embeddings, cache_line_embeddings), dim=-1)
+
+# MLP1  
+        mlp1_outputs = self._mlp1(mlp_input)
 
 # Attention
         '''
@@ -252,14 +259,13 @@ class EvictionPolicyModel(nn.Module):
         '''
 # MLP2
         # (batch_size, num_cache_lines)
-        scores = F.softmax(self._cache_line_scorer(single_layer_input).squeeze(-1), -1)
+        scores = F.softmax(self._cache_line_scorer(mlp1_outputs).squeeze(-1), -1)
         probs = utils.mask_renormalize(scores, mask)
-        
-        pred_reuse_distances = self._reuse_distance_estimator(single_layer_input).squeeze(-1)
+
+        pred_reuse_distances = self._reuse_distance_estimator(mlp1_outputs).squeeze(-1)
         # Return reuse distances as scores if probs aren't being trained.
         if len(self._loss_fns) == 1 and "reuse_dist" in self._loss_fns:
             probs = torch.max(pred_reuse_distances, torch.ones_like(pred_reuse_distances) * 1e-5) * mask.float()
-        
         '''
         # Transpose access_history to be (batch_size, history_len)
         unbatched_histories = zip(*access_history)
