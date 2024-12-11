@@ -41,7 +41,6 @@ ipywidgets
 ipykernel
 sentence-transformers
 faiss-cpu
-faiss-gpu
 
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch==2.3.1+cu118
