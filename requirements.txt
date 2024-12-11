@@ -43,6 +43,7 @@ sentence-transformers
 faiss-cpu
 pandasai
 xformers==0.0.27.post2
+pypdf
 
 --find-links https://download.pytorch.org/whl/torch
 torch==2.4.0+cu121
