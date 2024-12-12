@@ -16,10 +16,12 @@
 """Defines a simple cache."""
 
 import collections
+
 import numpy as np
+
 from cache_replacement.policy_learning.cache import eviction_policy as eviction_policy_mod
-from task02 import eviction_policy as model_eviction_policy_mod
 from cache_replacement.policy_learning.common import config as cfg
+from task02 import eviction_policy as model_eviction_policy_mod
 
 
 class CacheSet(object):

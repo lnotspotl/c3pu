@@ -13,9 +13,9 @@ networkx==3.2.1
 numpy==1.26.4
 pillow==10.2.0
 prettytable==3.11.0
-protobuf==5.28.1
+protobuf<4.0.0
 scipy==1.14.1
-sympy==1.12
+sympy==1.13.1
 tensorboard==2.17.1
 tensorboard-data-server==0.7.2
 tqdm==4.66.5
@@ -23,19 +23,28 @@ Werkzeug==3.0.4
 ruff==0.6.9
 rich==13.9.3
 opencv-python==4.10.0.84
-pandas==2.2.3
+pandas==1.5.3
 python-dotenv==1.0.1
 langchain==0.3.7
 langchain-openai==0.2.5
 langchain-community==0.3.5
 chromadb==0.5.17
 peft
+trl<0.9.0
+unsloth==2024.12.4
 transformers
 datasets
 accelerate
 bitsandbytes
 loralib
 ipywidgets
+ipykernel
+sentence-transformers
+faiss-cpu
+pandasai==2.4.0
+xformers==0.0.28.post1
+pypdf
+seaborn
 
---find-links https://download.pytorch.org/whl/torch_stable.html
-torch==2.3.1+cu118
+--find-links https://download.pytorch.org/whl/torch
+torch==2.4.1+cu121

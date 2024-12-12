@@ -32,27 +32,22 @@ Trains full model with all additions on trained and validated on the sample trac
 
 import io
 import os
-from absl import app
-from absl import flags
-from absl import logging
+
 import numpy as np
 import prettytable
 import torch
-from torch.utils.tensorboard import SummaryWriter
-from torch import optim
 import tqdm
-from cache_replacement.policy_learning.cache_model import schedules
-from task02 import cache as cache_mod
-from task02 import evict_trace
-from cache_replacement.policy_learning.cache import eviction_policy
-from cache_replacement.policy_learning.cache import memtrace
-from task02 import eviction_policy as model_eviction_policy
-from cache_replacement.policy_learning.cache_model import metric
-from task02 import model
-from cache_replacement.policy_learning.cache_model import utils
+from absl import app, flags, logging
+from torch import optim
+from torch.utils.tensorboard import SummaryWriter
+
+from cache_replacement.policy_learning.cache import eviction_policy, memtrace
+from cache_replacement.policy_learning.cache_model import metric, schedules, utils
 from cache_replacement.policy_learning.common import config as cfg
 from cache_replacement.policy_learning.common import utils as common_utils
-
+from task02 import cache as cache_mod
+from task02 import evict_trace, model
+from task02 import eviction_policy as model_eviction_policy
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
@@ -178,7 +173,7 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
             "prob",
             "oracle score",
             "pred reuse distance",
-            "rank correct?"
+            "rank correct?",
             # "in history?",
         ]
         cache_lines_table = prettytable.PrettyTable(headers)
@@ -198,13 +193,13 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
                     "{:.2f}".format(prob),
                     "{:.2f}".format(eviction_decision.cache_line_scores[cand]),
                     "{:.2f}".format(pred_reuse.item()),
-                    success
+                    success,
                     # present,
                 ]
             )
         s.append(str(cache_lines_table))
         s.append("\n")
-        '''
+        """
         s.append("Attention:\n")
         num_cache_lines = len(cache_access.cache_lines)
         headers = ["timestep", "pc", "address"] + ["line {}".format(i) for i in range(num_cache_lines)]
@@ -216,7 +211,7 @@ def evaluate(policy_model, data, step, descriptor, tb_writer, log_dir, k=5):
             attention_table.add_row(row)
         s.append(str(attention_table))
         s.append("\n")
-        '''
+        """
         return "".join(s)
 
     # Chop into batch_size parallel sequences

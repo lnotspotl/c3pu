@@ -31,18 +31,16 @@ Example usage:
 # pylint: enable=line-too-long
 
 import os
-from absl import app
-from absl import flags
-from absl import logging
-
-from torch.utils.tensorboard import SummaryWriter
 
 import tqdm
-from task02 import cache as cache_mod
-from task02 import evict_trace as evict
+from absl import app, flags, logging
+from torch.utils.tensorboard import SummaryWriter
+
 from cache_replacement.policy_learning.cache import memtrace
 from cache_replacement.policy_learning.common import config as cfg
 from cache_replacement.policy_learning.common import utils
+from task02 import cache as cache_mod
+from task02 import evict_trace as evict
 
 FLAGS = flags.FLAGS
 flags.DEFINE_multi_string(

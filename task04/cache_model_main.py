@@ -32,27 +32,22 @@ Trains full model with all additions on trained and validated on the sample trac
 
 import io
 import os
-from absl import app
-from absl import flags
-from absl import logging
+
 import numpy as np
 import prettytable
 import torch
-from torch.utils.tensorboard import SummaryWriter
-from torch import optim
 import tqdm
-from cache_replacement.policy_learning.cache_model import schedules
-from task04 import cache as cache_mod
-from task04 import evict_trace
-from cache_replacement.policy_learning.cache import eviction_policy
-from cache_replacement.policy_learning.cache import memtrace
-from task04 import eviction_policy as model_eviction_policy
-from cache_replacement.policy_learning.cache_model import metric
-from task04 import model
-from cache_replacement.policy_learning.cache_model import utils
+from absl import app, flags, logging
+from torch import optim
+from torch.utils.tensorboard import SummaryWriter
+
+from cache_replacement.policy_learning.cache import eviction_policy, memtrace
+from cache_replacement.policy_learning.cache_model import metric, schedules, utils
 from cache_replacement.policy_learning.common import config as cfg
 from cache_replacement.policy_learning.common import utils as common_utils
-
+from task04 import cache as cache_mod
+from task04 import evict_trace, model
+from task04 import eviction_policy as model_eviction_policy
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
