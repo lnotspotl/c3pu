@@ -23,7 +23,7 @@ Werkzeug==3.0.4
 ruff==0.6.9
 rich==13.9.3
 opencv-python==4.10.0.84
-pandas==2.2.3
+pandas==1.5.3
 python-dotenv==1.0.1
 langchain==0.3.7
 langchain-openai==0.2.5
@@ -41,9 +41,10 @@ ipywidgets
 ipykernel
 sentence-transformers
 faiss-cpu
-pandasai
-xformers==0.0.27.post2
+pandasai==2.4.0
+xformers==0.0.28.post1
 pypdf
+seaborn
 
 --find-links https://download.pytorch.org/whl/torch
-torch==2.4.0+cu121
+torch==2.4.1+cu121
