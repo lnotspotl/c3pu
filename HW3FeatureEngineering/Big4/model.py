@@ -45,6 +45,7 @@ class EvictionPolicyModel(nn.Module):
         """
         address_embedder = embed.from_config(config.get("address_embedder"))
         pc_embedder = embed.from_config(config.get("pc_embedder"))
+        byte_embedder = embed.from_config(config.get("byte_embedder"))
         if config.get("cache_line_embedder") == "address_embedder":
             cache_line_embedder = address_embedder
         else:
@@ -71,6 +72,7 @@ class EvictionPolicyModel(nn.Module):
         return cls(
             pc_embedder,
             address_embedder,
+            byte_embedder,
             cache_line_embedder,
             positional_embedder,
             config.get("lstm_hidden_size"),
@@ -83,6 +85,7 @@ class EvictionPolicyModel(nn.Module):
         self,
         pc_embedder,
         address_embedder,
+        byte_embedder,
         cache_line_embedder,
         positional_embedder,
         lstm_hidden_size,
@@ -126,8 +129,9 @@ class EvictionPolicyModel(nn.Module):
         self._address_embedder = address_embedder
         self._cache_line_embedder = cache_line_embedder
         self._cache_pc_embedder = cache_pc_embedder
-        self._rnn_cell = nn.RNNCell(pc_embedder.embed_dim + address_embedder.embed_dim, lstm_hidden_size)
+        self._lstm_cell = nn.LSTMCell(pc_embedder.embed_dim + address_embedder.embed_dim + 4, lstm_hidden_size) # +4 for additional integer features
         self._positional_embedder = positional_embedder
+        self._byte_embedder = byte_embedder
 
         query_dim = cache_line_embedder.embed_dim
         if cache_pc_embedder is not None:
@@ -186,11 +190,24 @@ class EvictionPolicyModel(nn.Module):
         pc_embedding = self._pc_embedder([cache_access.pc for cache_access in cache_accesses])
         address_embedding = self._address_embedder([cache_access.address for cache_access in cache_accesses])
 
+# Extract features
+        set = torch.tensor([int(cache_access.features[2]) for cache_access in cache_accesses]).unsqueeze(-1)
+        way = torch.tensor([int(cache_access.features[3]) for cache_access in cache_accesses]).unsqueeze(-1)
+        access_type = torch.tensor([int(cache_access.features[4]) for cache_access in cache_accesses]).unsqueeze(-1)
+        recency = torch.tensor([int(cache_access.features[5]) for cache_access in cache_accesses]).unsqueeze(-1)
+        
+
+# Embed features
+        #set_embedding = self._pc_embedder([int(cache_access.features[2]) for cache_access in cache_accesses])
+        #way_embedding = self._pc_embedder([int(cache_access.features[3]) for cache_access in cache_accesses])
+        #access_type_embedding = self._pc_embedder([int(cache_access.features[4]) for cache_access in cache_accesses])
+        #recency_embedding = self._pc_embedder([int(cache_access.features[5]) for cache_access in cache_accesses])
+
         # Each (batch_size, hidden_size)
-        next_h = self._rnn_cell(torch.cat((pc_embedding, address_embedding), -1), hidden_state)
+        next_c, next_h = self._lstm_cell(torch.cat((pc_embedding, address_embedding, set, way, access_type, recency), -1), hidden_state)
 
         if inference:
-            # next_c = next_c.detach()
+            next_c = next_c.detach()
             next_h = next_h.detach()
 
         # Don't modify history in place
@@ -209,6 +226,7 @@ class EvictionPolicyModel(nn.Module):
         # Flatten into single list
         cache_pcs = itertools.chain.from_iterable(cache_lines[:, :, 1])
         cache_addresses = itertools.chain.from_iterable(cache_lines[:, :, 0])
+        
 
         # (batch_size, num_cache_lines, embed_dim)
         cache_line_embeddings = self._cache_line_embedder(cache_addresses).view(batch_size, num_cache_lines, -1)
@@ -244,8 +262,7 @@ class EvictionPolicyModel(nn.Module):
             zip(weights.transpose(0, 1), history) for weights, history in zip(attention_weights, unbatched_histories)
         )
 
-        # next_hidden_state = ((next_c, next_h), hidden_state_history, access_history)
-        next_hidden_state = (next_h, hidden_state_history, access_history)
+        next_hidden_state = ((next_c, next_h), hidden_state_history, access_history)
         return probs, pred_reuse_distances, next_hidden_state, access_attention
 
     def loss(self, eviction_traces, warmup_period):
@@ -327,12 +344,11 @@ class EvictionPolicyModel(nn.Module):
           access_history (collections.deque[list[CacheAccess]]): sequences of
             batches of cache accesses.
         """
-        # initial_cell_state = torch.zeros(batch_size, self._rnn_cell.hidden_size)
-        initial_hidden_state = torch.zeros(batch_size, self._rnn_cell.hidden_size)
+        initial_cell_state = torch.zeros(batch_size, self._lstm_cell.hidden_size)
+        initial_hidden_state = torch.zeros(batch_size, self._lstm_cell.hidden_size)
         initial_hidden_state_history = collections.deque([], maxlen=self._max_attention_history)
         initial_access_history = collections.deque([], maxlen=self._max_attention_history)
-        # return ((initial_cell_state, initial_hidden_state), initial_hidden_state_history, initial_access_history)
-        return (initial_hidden_state, initial_hidden_state_history, initial_access_history)
+        return ((initial_cell_state, initial_hidden_state), initial_hidden_state_history, initial_access_history)
 
 
 class LossFunction(abc.ABC):

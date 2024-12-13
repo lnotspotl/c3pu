@@ -1,0 +1,31 @@
+{
+  "lr": 0.001,
+  "address_embedder": {
+    "type": "byte",
+    "embed_dim": 64,
+    "bytes_per_entry": 8
+  },
+  "pc_embedder": {
+    "type": "byte",
+    "embed_dim": 64,
+    "bytes_per_entry": 8
+  },
+  "byte_embedder": {
+    "type": "byte",
+    "embed_dim": 64,
+    "bytes_per_entry": 8
+  },
+  "cache_line_embedder": "address_embedder",
+  "cache_pc_embedder": "none",
+  "positional_embedder": {
+    "type": "positional",
+    "embed_dim": 128
+  },
+  "lstm_hidden_size": 128,
+  "max_attention_history": 30,
+  "sequence_length": 80,
+  "loss": [
+    "log_likelihood"
+  ]
+
+}
